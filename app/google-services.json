@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "921292646607",
+    "project_id": "craic-o-meter",
+    "storage_bucket": "craic-o-meter.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:921292646607:android:0760e068a63072a850afba",
+        "android_client_info": {
+          "package_name": "com.example.finalproject_mobdev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCf6xizH3k-qZPMVBcq6cBQLq_j8JkG0IQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
