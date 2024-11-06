@@ -58,6 +58,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -65,9 +69,19 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation ("com.google.android.exoplayer:exoplayer:2.18.1")
     implementation("com.google.firebase:firebase-auth-ktx:21.0.3")
+    implementation ("androidx.navigation:navigation-compose:2.4.2")
     implementation("androidx.navigation:navigation-compose:2.7.0")
-
-
+    implementation ("com.google.android.gms:play-services-maps:18.0.2")
+    implementation ("com.google.maps.android:maps-compose:1.0.0" )// For Jetpack Compose integration with Maps
+    implementation ("com.google.android.gms:play-services-maps:18.1.0")
+    implementation ("com.google.maps.android:maps-compose:2.2.0")
+    implementation ("com.google.accompanist:accompanist-permissions:0.31.0-alpha")
+    implementation ("com.google.accompanist:accompanist-navigation-material:0.31.0-alpha")
+    implementation ("com.google.android.gms:play-services-location:21.0.1") // For GPS location
+    implementation ("androidx.activity:activity-compose:1.5.1") // For permission handling in Compose
+    implementation ("com.google.accompanist:accompanist-permissions:0.28.0")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
 
 }
