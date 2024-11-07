@@ -1,4 +1,3 @@
-// HomeScreen.kt
 package com.example.finalproject_mobdev.ui
 
 import android.Manifest
@@ -12,10 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.*
+import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import kotlin.math.*
@@ -26,7 +27,9 @@ val LIMERICK_COORDINATES = Pair(52.6703343, -8.6289896) // Example coordinates f
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onLogout: () -> Unit // Callback to navigate back to the MainScreen after logout
+) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
@@ -42,7 +45,9 @@ fun HomeScreen() {
     var pubInfo by remember { mutableStateOf("") }
 
     Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -97,6 +102,20 @@ fun HomeScreen() {
                 }
             }) {
                 Text("Choose Your Location")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Logout button
+            Button(
+                onClick = {
+                    FirebaseAuth.getInstance().signOut() // Sign out from Firebase
+                    onLogout() // Call the callback to navigate back to MainScreen
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Logout")
             }
         }
     }

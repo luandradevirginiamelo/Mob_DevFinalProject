@@ -52,27 +52,40 @@ fun MainScreen() {
     var showForgotPassword by remember { mutableStateOf(false) }
     var emailForReset by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Get the current context and Firebase authentication instance
+    // Get the current context and FirebaseAuth instance
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
+
+    // Check if user is already logged in when MainScreen is first loaded
+    LaunchedEffect(auth) {
+        if (auth.currentUser != null) {
+            showHomeScreen = true // User is already logged in, show HomeScreen directly
+        }
+    }
 
     // Display different screens based on state
     when {
         showRegisterScreen -> {
-            // Show the registration screen, with a callback to dismiss it
-            RegisterScreen(onDismiss = { showRegisterScreen = false })
+            // Show the registration screen with a callback to dismiss it
+            RegisterScreen(
+                onDismiss = { showRegisterScreen = false }, // Go back to login screen
+                onRegisterSuccess = { showHomeScreen = true } // Navigate to HomeScreen after registration
+            )
         }
         showHomeScreen -> {
-            // Show the home screen after successful login
-            HomeScreen()
+            // Show the home screen after successful login or registration
+            HomeScreen( onLogout = { showHomeScreen = false } // Go back to main screen after logout
+            )
         }
         else -> {
             // Main container with background and conditional screens
             Box(modifier = Modifier.fillMaxSize()) {
-                VideoBackgroundScreen() // Video background for the main screen
+                // Background video screen for the main screen
+                VideoBackgroundScreen()
 
+                // Check if Forgot Password screen should be shown
                 if (showForgotPassword) {
-                    // Forgot password screen
+                    // Forgot Password screen
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
@@ -81,10 +94,15 @@ fun MainScreen() {
                             .background(Color(0x80000000)) // Semi-transparent background
                             .padding(32.dp)
                     ) {
-                        Text("Reset Password", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                        Text(
+                            "Reset Password",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Field to enter the email for password reset
                         TextField(
                             value = emailForReset,
                             onValueChange = { emailForReset = it },
@@ -94,20 +112,34 @@ fun MainScreen() {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Button to send the password reset email
                         Button(
                             onClick = {
                                 if (emailForReset.text.isNotEmpty()) {
-                                    // Send password reset email
+                                    // Send password reset email using FirebaseAuth
                                     auth.sendPasswordResetEmail(emailForReset.text)
                                         .addOnCompleteListener { task ->
                                             if (task.isSuccessful) {
-                                                Toast.makeText(context, "Reset email sent to ${emailForReset.text}", Toast.LENGTH_SHORT).show()
-                                                showForgotPassword = false // Hide the reset password field
+                                                // Successfully sent email
+                                                Toast.makeText(
+                                                    context,
+                                                    "Reset email sent to ${emailForReset.text}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                // Hide the reset password screen
+                                                showForgotPassword = false
                                             } else {
-                                                Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                                                // Error sending reset email
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error: ${task.exception?.message}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                                task.exception?.printStackTrace()
                                             }
                                         }
                                 } else {
+                                    // Warning if email field is empty
                                     Toast.makeText(context, "Please enter your email", Toast.LENGTH_SHORT).show()
                                 }
                             },
@@ -118,6 +150,7 @@ fun MainScreen() {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Button to go back to the main login screen
                         TextButton(onClick = { showForgotPassword = false }) {
                             Text("Back", color = Color.White)
                         }
@@ -137,7 +170,7 @@ fun MainScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         TextButton(
-                            onClick = { showForgotPassword = true }
+                            onClick = { showForgotPassword = true } // Show Forgot Password screen
                         ) {
                             Text("Forgot Password?")
                         }
@@ -150,28 +183,28 @@ fun MainScreen() {
 
 @Composable
 fun VideoBackgroundScreen() {
-    // Retrieve the current context and create an ExoPlayer instance
+    // Configure the context and create an ExoPlayer instance
     val context = LocalContext.current
     val player = remember { ExoPlayer.Builder(context).build() }
 
-    // Set up the video background using a local resource URI
+    // Set up the video background using a local resource
     val videoUri = Uri.parse("android.resource://${context.packageName}/raw/video2_background")
     val mediaItem = MediaItem.fromUri(videoUri)
     player.setMediaItem(mediaItem)
     player.prepare()
     player.playWhenReady = true
 
-    // Enable repeat mode for continuous looping
+    // Enable loop mode for continuous video playback
     player.repeatMode = Player.REPEAT_MODE_ALL
 
-    // Clean up player resources when the composable leaves the composition
+    // Release the player resources when the composable exits
     DisposableEffect(Unit) {
         onDispose {
             player.release()
         }
     }
 
-    // Display the video player as a background view
+    // Display the PlayerView as the video background
     AndroidView(factory = { PlayerView(context).apply {
         this.player = player
         this.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
@@ -185,7 +218,7 @@ fun VideoBackgroundScreen() {
 
 @Composable
 fun LoginScreen(onRegisterClick: () -> Unit, onCraicClick: () -> Unit, modifier: Modifier = Modifier) {
-    // Initialize Firebase authentication and get the current context
+    // Initialize FirebaseAuth and the current context
     val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
 
@@ -215,6 +248,7 @@ fun LoginScreen(onRegisterClick: () -> Unit, onCraicClick: () -> Unit, modifier:
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Username input field
             TextField(
                 value = username,
                 onValueChange = { username = it },
@@ -226,6 +260,7 @@ fun LoginScreen(onRegisterClick: () -> Unit, onCraicClick: () -> Unit, modifier:
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Password input field with hidden characters
             TextField(
                 value = password,
                 onValueChange = { password = it },
@@ -238,15 +273,15 @@ fun LoginScreen(onRegisterClick: () -> Unit, onCraicClick: () -> Unit, modifier:
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Login button using Firebase Authentication
             Button(
                 onClick = {
                     if (username.text.isNotEmpty() && password.text.isNotEmpty()) {
-                        // Attempt to sign in with Firebase authentication
                         auth.signInWithEmailAndPassword(username.text, password.text)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                                    onCraicClick() // Navigate to the HomeScreen
+                                    onCraicClick() // Navigate to HomeScreen
                                 } else {
                                     Toast.makeText(context, "Login failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                                 }
@@ -263,6 +298,7 @@ fun LoginScreen(onRegisterClick: () -> Unit, onCraicClick: () -> Unit, modifier:
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Button to open the registration screen
             Button(
                 onClick = onRegisterClick,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF008000)),
@@ -277,9 +313,8 @@ fun LoginScreen(onRegisterClick: () -> Unit, onCraicClick: () -> Unit, modifier:
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    // Preview function to display the main screen in the Android Studio preview
+    // Preview function to display the main screen in Android Studio Preview
     Finalproject_MOBDEVTheme {
         MainScreen()
     }
 }
-
