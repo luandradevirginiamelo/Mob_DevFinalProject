@@ -83,5 +83,9 @@ dependencies {
     implementation ("androidx.activity:activity-compose:1.5.1") // For permission handling in Compose
     implementation ("com.google.accompanist:accompanist-permissions:0.28.0")
     implementation ("com.google.android.gms:play-services-location:21.0.1")
+    implementation ("androidx.compose.ui:ui:1.3.0") // Adjust version if needed
+    implementation ("androidx.compose.material3:material3:1.0.0-alpha11") // Material 3 for Compose
+    implementation ("com.google.accompanist:accompanist-permissions:0.30.0") // Accompanist for permissions
+    implementation ("com.google.firebase:firebase-auth-ktx:21.1.0") // Firebase authentication (optional)
 
 }

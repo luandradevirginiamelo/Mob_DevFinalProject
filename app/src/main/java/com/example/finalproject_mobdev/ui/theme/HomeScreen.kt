@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.IntentSender
 import android.os.Looper
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,21 +17,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.finalproject_mobdev.data.Pub
 import com.google.accompanist.permissions.*
-import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
+import com.google.firebase.auth.FirebaseAuth
 import kotlin.math.*
 
 // Coordinates for Dublin and Limerick
-val DUBLIN_COORDINATES = Pair(53.3498, -6.2603) // Example coordinates for Dublin
-val LIMERICK_COORDINATES = Pair(52.6703343, -8.6289896) // Example coordinates for Limerick
+val DUBLIN_COORDINATES = Pair(53.3498, -6.2603)
+val LIMERICK_COORDINATES = Pair(52.6703343, -8.6289896)
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeScreen(
-    onLogout: () -> Unit // Callback to navigate back to the MainScreen after logout
-) {
+fun HomeScreen(onLogout: () -> Unit) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
@@ -41,72 +42,99 @@ fun HomeScreen(
         )
     )
 
+    // State variables for location and pub info
     var locationText by remember { mutableStateOf("No location selected") }
-    var pubInfo by remember { mutableStateOf("") }
+    var pubs by remember { mutableStateOf(updatePubListBasedOnLocation(locationText)) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column {
             Text(
-                "Bem-vindo à Home Screen LUANNA THE BEST!",
-                style = MaterialTheme.typography.headlineMedium
+                "🔥 Best Craic Right Now",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
             )
+
+            // Change Location Button
+            Button(
+                onClick = {
+                    // Check if all location permissions are granted
+                    if (locationPermissionsState.allPermissionsGranted) {
+                        locationText = "Retrieving location..."
+                        pubs = emptyList()
+
+                        // Check if GPS is enabled, then request the new location
+                        checkIfGpsIsEnabled(context) {
+                            getCurrentLocation(context, fusedLocationClient) { location ->
+                                locationText = location ?: "Unable to retrieve location"
+                                pubs = updatePubListBasedOnLocation(locationText)
+                            }
+                        }
+                    } else {
+                        // Request location permissions
+                        locationPermissionsState.launchMultiplePermissionRequest()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Text("Change Location")
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                "Let's find your next unforgettable craic. Choose a location below to get started.",
-                style = MaterialTheme.typography.bodyMedium,
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+            // Display location and pub info
             Text(
                 text = locationText,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(8.dp)
             )
 
+            // List of Top 10 Pubs
             Text(
-                text = pubInfo,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(8.dp)
+                text = "🍺 Top 10 Pubs",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = {
-                // Check if all location permissions are granted
-                if (locationPermissionsState.allPermissionsGranted) {
-                    // Reset state for new location selection
-                    locationText = "Retrieving location..."
-                    pubInfo = ""
-
-                    // Check if GPS is enabled, then request the new location
-                    checkIfGpsIsEnabled(context) {
-                        getCurrentLocation(context, fusedLocationClient) { location ->
-                            locationText = location ?: "Unable to retrieve location"
-                            pubInfo = determinePubInfo(locationText)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                items(pubs) { pub ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(pub.name, style = MaterialTheme.typography.bodyLarge)
+                                Text("Craic Score: ${pub.craicScore} 🔥", style = MaterialTheme.typography.bodyMedium)
+                                Text(pub.comment, style = MaterialTheme.typography.bodySmall)
+                            }
+                            Button(onClick = { /* Handle rating functionality here */ }) {
+                                Text("Rate 🔥")
+                            }
                         }
                     }
-                } else {
-                    // Request location permissions
-                    locationPermissionsState.launchMultiplePermissionRequest()
                 }
-            }) {
-                Text("Choose Your Location")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Logout button
+            // Logout Button
             Button(
                 onClick = {
                     FirebaseAuth.getInstance().signOut() // Sign out from Firebase
@@ -118,18 +146,49 @@ fun HomeScreen(
                 Text("Logout")
             }
         }
-    }
 
-    // Observe permission changes and take action when permissions are granted
-    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
-        if (locationPermissionsState.allPermissionsGranted) {
-            checkIfGpsIsEnabled(context) {
-                getCurrentLocation(context, fusedLocationClient) { location ->
-                    locationText = location ?: "Unable to retrieve location"
-                    pubInfo = determinePubInfo(locationText)
-                }
-            }
+        // Floating Action Button for rating
+        FloatingActionButton(
+            onClick = {
+                // Handle floating action button click for rating
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = Color.Red,
+            contentColor = Color.White
+        ) {
+            Text("Rate 🔥")
         }
+    }
+}
+
+// Function to update the pub list based on location
+private fun updatePubListBasedOnLocation(locationText: String): List<Pub> {
+    val locationParts = locationText.split(", ")
+    if (locationParts.size < 2) return emptyList()
+
+    val lat = locationParts[0].substringAfter("Lat: ").toDoubleOrNull() ?: return emptyList()
+    val lng = locationParts[1].substringAfter("Lng: ").toDoubleOrNull() ?: return emptyList()
+
+    val dublinDistance = calculateDistance(lat, lng, DUBLIN_COORDINATES.first, DUBLIN_COORDINATES.second)
+    val limerickDistance = calculateDistance(lat, lng, LIMERICK_COORDINATES.first, LIMERICK_COORDINATES.second)
+
+    return when {
+        dublinDistance < 10 -> listOf(
+            Pub("Dublin Pub A", 5, "Fantastic atmosphere!"),
+            Pub("Dublin Pub B", 4, "Great live music and crowd."),
+            Pub("Dublin Pub C", 3, "Relaxed vibe with good drinks.")
+        )
+        limerickDistance < 10 -> listOf(
+            Pub("Limerick Pub A", 5, "Lively crowd and great music."),
+            Pub("Limerick Pub B", 4, "Friendly staff and cool ambiance."),
+            Pub("Limerick Pub C", 3, "Nice spot for a casual night out.")
+        )
+        else -> listOf(
+            Pub("Generic Pub 1", 2, "Not in Dublin or Limerick"),
+            Pub("Generic Pub 2", 3, "Try Dublin or Limerick for better craic!")
+        )
     }
 }
 
@@ -158,29 +217,10 @@ private fun getCurrentLocation(
         }
     }
 
-    // Request new location updates each time the button is clicked
+    // Request new location updates
     fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
 }
 
-// Function to determine pub information based on coordinates
-private fun determinePubInfo(location: String): String {
-    val locationParts = location.split(", ")
-    if (locationParts.size < 2) return "Invalid location data"
-
-    val lat = locationParts[0].substringAfter("Lat: ").toDoubleOrNull() ?: return "Invalid latitude"
-    val lng = locationParts[1].substringAfter("Lng: ").toDoubleOrNull() ?: return "Invalid longitude"
-
-    val dublinDistance = calculateDistance(lat, lng, DUBLIN_COORDINATES.first, DUBLIN_COORDINATES.second)
-    val limerickDistance = calculateDistance(lat, lng, LIMERICK_COORDINATES.first, LIMERICK_COORDINATES.second)
-
-    return when {
-        dublinDistance < 10 -> "You are in Dublin! Check out Pub B."
-        limerickDistance < 10 -> "You are in Limerick! Check out Pub A."
-        else -> "Sorry, but you're out of the craic locations."
-    }
-}
-
-// Calculate distance between two coordinates using Haversine formula
 private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     val earthRadius = 6371.0 // Kilometers
 
@@ -195,11 +235,7 @@ private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Do
 
 // Function to check if GPS is enabled and request to enable it if not
 private fun checkIfGpsIsEnabled(context: Context, onEnabled: () -> Unit) {
-    val activity = context as? Activity
-    if (activity == null) {
-        // If context is not an Activity, we can't show the GPS enable dialog
-        return
-    }
+    val activity = context as? Activity ?: return
 
     val locationRequest = LocationRequest.create().apply {
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
@@ -217,7 +253,7 @@ private fun checkIfGpsIsEnabled(context: Context, onEnabled: () -> Unit) {
             try {
                 exception.startResolutionForResult(activity, 1001)
             } catch (sendEx: IntentSender.SendIntentException) {
-                // Ignore the error.
+                // Ignore the error
             }
         }
     }
