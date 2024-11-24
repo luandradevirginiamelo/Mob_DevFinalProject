@@ -87,5 +87,6 @@ dependencies {
     implementation ("androidx.compose.material3:material3:1.0.0-alpha11") // Material 3 for Compose
     implementation ("com.google.accompanist:accompanist-permissions:0.30.0") // Accompanist for permissions
     implementation ("com.google.firebase:firebase-auth-ktx:21.1.0") // Firebase authentication (optional)
+    implementation ("androidx.compose.material:material-icons-extended:1.5.1")
 
 }
