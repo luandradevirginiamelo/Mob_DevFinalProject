@@ -1,4 +1,4 @@
-package com.example.finalproject_mobdev.data
+package com.example.finalproject_mobdev.screen
 
 data class Pub(
     val name: String,

@@ -1,4 +1,4 @@
-package com.example.finalproject_mobdev.ui
+package com.example.finalproject_mobdev.screen
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -16,8 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.finalproject_mobdev.data.Pub
+import com.example.finalproject_mobdev.screen.Pub
 import com.google.accompanist.permissions.*
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -82,7 +81,7 @@ fun HomeScreen(onLogout: () -> Unit) {
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                Text("Change Location")
+                Text("Update Location")
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -258,3 +257,4 @@ private fun checkIfGpsIsEnabled(context: Context, onEnabled: () -> Unit) {
         }
     }
 }
+
