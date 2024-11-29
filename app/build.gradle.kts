@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.finalproject_mobdev"
-        minSdk = 24
+        minSdk = 21
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -87,6 +87,12 @@ dependencies {
     implementation ("androidx.compose.material3:material3:1.0.0-alpha11") // Material 3 for Compose
     implementation ("com.google.accompanist:accompanist-permissions:0.30.0") // Accompanist for permissions
     implementation ("com.google.firebase:firebase-auth-ktx:21.1.0") // Firebase authentication (optional)
+    implementation ("androidx.compose.material:material-icons-extended:1.5.1")
+    implementation ("io.coil-kt:coil-compose:2.3.0")
+    implementation ("com.google.firebase:firebase-bom:32.1.1")
+    implementation(platform("com.google.firebase:firebase-bom:32.1.1"))
+    implementation ("com.google.firebase:firebase-firestore-ktx")
+    implementation ("androidx.compose.material:material-icons-core:1.5.1")
     implementation ("androidx.compose.material:material-icons-extended:1.5.1")
 
 }

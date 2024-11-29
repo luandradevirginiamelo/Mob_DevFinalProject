@@ -5,6 +5,9 @@ import android.view.ViewGroup
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.finalproject_mobdev.R
@@ -31,32 +35,33 @@ fun LoginScreen(
 ) {
     val auth = FirebaseAuth.getInstance()
 
-    // Estados para os campos de entrada
+    // States for input fields
     var username by remember { mutableStateOf(TextFieldValue()) }
     var password by remember { mutableStateOf(TextFieldValue()) }
+    var passwordVisible by remember { mutableStateOf(false) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
-    // Estado do Snackbar
+    // Snackbar state
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
 
-    // Quando snackbarMessage muda, exibe o Snackbar
+    // Trigger Snackbar when a message is set
     LaunchedEffect(snackbarMessage) {
         snackbarMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
-            snackbarMessage = null // Limpa a mensagem após exibi-la
+            snackbarMessage = null // Clear the message after showing it
         }
     }
 
-    // Layout principal
+    // Main layout
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) } // Adiciona o SnackbarHost
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) } // Attach the SnackbarHost
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Vídeo de fundo
+            // Background video
             VideoBackground()
 
-            // Conteúdo da tela (sobreposto ao vídeo)
+            // Content overlay (on top of the video)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -64,7 +69,7 @@ fun LoginScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Texto de boas-vindas
+                    // Welcome text
                     Text(
                         text = "Welcome to Where's the Craic! Discover the best pubs around.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -72,12 +77,12 @@ fun LoginScreen(
                         modifier = Modifier.padding(16.dp)
                     )
 
-                    // Logo animado
+                    // Animated logo
                     AnimatedLogo()
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Campo de entrada para email
+                    // Email input field
                     TextField(
                         value = username,
                         onValueChange = { username = it },
@@ -87,25 +92,32 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Campo de entrada para senha
+                    // Password input field with visibility toggle
                     TextField(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            val icon = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
+                            val description = if (passwordVisible) "Hide password" else "Show password"
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = icon, contentDescription = description)
+                            }
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botão de login
+                    // Log In button
                     Button(
                         onClick = {
                             if (username.text.isNotEmpty() && password.text.isNotEmpty()) {
                                 auth.signInWithEmailAndPassword(username.text, password.text)
                                     .addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
-                                            onCraicClick() // Navega para a HomeScreen
+                                            onCraicClick() // Navigate to the HomeScreen
                                         } else {
                                             snackbarMessage = "Login failed: ${task.exception?.message}"
                                         }
@@ -121,7 +133,7 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Botão para registrar-se
+                    // Sign Up button
                     Button(
                         onClick = onRegisterClick,
                         modifier = Modifier.fillMaxWidth()
@@ -131,6 +143,7 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Forgot Password button
                     Button(
                         onClick = { showForgotPasswordDialog = true },
                         modifier = Modifier.fillMaxWidth()
@@ -140,7 +153,7 @@ fun LoginScreen(
                 }
             }
 
-            // Exibe o dialog de "Esqueceu a senha?" quando necessário
+            // Display the "Forgot Password" dialog if needed
             if (showForgotPasswordDialog) {
                 ForgotPasswordDialog(
                     onDismiss = { showForgotPasswordDialog = false },

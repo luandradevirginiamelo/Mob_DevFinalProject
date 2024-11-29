@@ -16,10 +16,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.finalproject_mobdev.R
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun RegisterScreen(onDismiss: () -> Unit, onRegisterSuccess: () -> Unit) {
     val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance() // Firestore instance
     val context = LocalContext.current
 
     // Input fields
@@ -167,11 +169,28 @@ fun RegisterScreen(onDismiss: () -> Unit, onRegisterSuccess: () -> Unit) {
                 onClick = {
                     if (email.isNotEmpty() && password.isNotEmpty() && name.isNotEmpty() && retypePassword.isNotEmpty()) {
                         if (passwordError == null && retypePasswordError == null) {
+                            // Register user in Firebase Authentication
                             auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
-                                        showSnackbarMessage = "User registered successfully"
-                                        onRegisterSuccess()
+                                        // Get the UID of the registered user
+                                        val uid = task.result?.user?.uid
+                                        if (uid != null) {
+                                            // Save the name to Firestore
+                                            val userData = hashMapOf(
+                                                "nameandsurname" to name
+                                            )
+
+                                            db.collection("user").document(uid)
+                                                .set(userData)
+                                                .addOnSuccessListener {
+                                                    showSnackbarMessage = "User registered successfully"
+                                                    onRegisterSuccess()
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    showSnackbarMessage = "Failed to save user data: ${e.message}"
+                                                }
+                                        }
                                     } else {
                                         val errorMessage = task.exception?.message ?: "Unknown error"
                                         showSnackbarMessage = "Registration failed: $errorMessage"
