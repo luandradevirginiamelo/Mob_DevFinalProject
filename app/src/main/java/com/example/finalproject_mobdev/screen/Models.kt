@@ -3,7 +3,7 @@ package com.example.finalproject_mobdev.models
 // Data class for Pub
 data class Pub(
     val id: String,        // ID único do pub
-    val name: String,      // Nome do pub
+    val name: String,      // Name pub
     val craicScore: Int,   // Avaliação "Craic Score"
     val comment: String    // Comentários gerais sobre o pub
 )
