@@ -29,14 +29,15 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import androidx.compose.foundation.background
 
-
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
-    onNavigateToPubDetails: (String) -> Unit // Pass pubId to navigate to PubDetailsScreen
-
+    onNavigateToPubDetails: (String) -> Unit,
+    onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
+
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -47,7 +48,10 @@ fun HomeScreen(
     var userName by remember { mutableStateOf<String?>(null) } // User name
     var locationText by remember { mutableStateOf("No location selected") } // Location street
     var messageText by remember { mutableStateOf("") } // Location city
-    var pubsList by remember { mutableStateOf(listOf<Pair<String, String>>()) } // List of pubs (pubId, pubName)
+    var pubsList by remember { mutableStateOf(listOf<Pair<String, String>>()) } // List of pubs (pubId, pubName|rate)
+
+    // Dark mode state
+    var isDarkMode by remember { mutableStateOf(false) } // Default is light mode
 
     // State for the drawer
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -74,34 +78,36 @@ fun HomeScreen(
         )
     )
 
-    // Define the content of the sidebar (navigation drawer)
+    // Drawer Content (Sidebar)
+    // Theme wrapping with dynamic Dark Mode
     val drawerContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(if (isDarkMode) Color.DarkGray else Color.Black) // Adjust for Dark Mode
                 .padding(16.dp)
         ) {
-            // Spacer para centralizar a palavra "Menu" mais acima
             Spacer(modifier = Modifier.height(40.dp))
 
             Text(
                 text = "Menu",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Color.White, // Make the text color white
-                modifier = Modifier.padding(bottom = 16.dp)
-
+                color = Color.White,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Profile Button
             Button(
                 onClick = {
-                    // Example: Navigate to Profile
-                    coroutineScope.launch { drawerState.close() }
+                    coroutineScope.launch {
+                        onProfileClick() // Navigate to Profile screen
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray, // Button background color
-                    contentColor = Color.White  // Button text color
+                    containerColor = Color.Gray,
+                    contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -113,12 +119,13 @@ fun HomeScreen(
             // Settings Button
             Button(
                 onClick = {
-                    // Example: Navigate to Settings
-                    coroutineScope.launch { drawerState.close() }
+                    coroutineScope.launch {
+                        onSettingsClick() // Navigate to Settings screen
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray, // Button background color
-                    contentColor = Color.White  // Button text color
+                    containerColor = Color.Gray,
+                    contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -131,13 +138,12 @@ fun HomeScreen(
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        drawerState.close()
-                        onLogout() // Log out and navigate to login screen
+                        onLogout() // Logout and navigate to Login screen
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray, // Button background color
-                    contentColor = Color.White  // Button text color
+                    containerColor = Color.Red,
+                    contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -146,11 +152,10 @@ fun HomeScreen(
         }
     }
 
-    // Add the ModalNavigationDrawer
+    // Navigation Drawer
     ModalNavigationDrawer(
         drawerContent = drawerContent,
-        drawerState = drawerState,
-        scrimColor = Color.Black.copy(alpha = 0.7f)
+        drawerState = drawerState
     ) {
         Scaffold(
             snackbarHost = { SnackbarHost(remember { SnackbarHostState() }) },
@@ -159,9 +164,9 @@ fun HomeScreen(
                     title = { Text("Home") },
                     navigationIcon = {
                         IconButton(onClick = {
-                            coroutineScope.launch { drawerState.open() } // Open the drawer
+                            coroutineScope.launch { drawerState.open() }
                         }) {
-                            Icon(Icons.Filled.Menu, contentDescription = "Menu") // Novo ícone de três tracinhos
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
                     }
                 )
@@ -198,7 +203,9 @@ fun HomeScreen(
                                         // Fetch pubs if the city is Limerick
                                         if (messageText == "Limerick") {
                                             fetchPubsFromDatabase { pubs ->
-                                                pubsList = pubs
+                                                pubsList = pubs.sortedByDescending {
+                                                    it.second.split("|")[1].toIntOrNull() ?: 0
+                                                }
                                             }
                                         } else {
                                             pubsList = listOf() // Clear pubs if not in Limerick
@@ -226,7 +233,7 @@ fun HomeScreen(
 
                 // Dynamic part (Scrollable list with pubs and logout button)
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize() // Ensure scrollable content takes up the rest of the screen
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     // Add location details
                     item {
@@ -257,7 +264,8 @@ fun HomeScreen(
                     }
 
                     // Add pubs list
-                    items(pubsList) { (pubId, pubName) ->
+                    items(pubsList) { (pubId, pubNameWithRate) ->
+                        val (pubName, rate) = pubNameWithRate.split("|") // Extract pub name and rate
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -272,14 +280,14 @@ fun HomeScreen(
                             ) {
                                 // Pub Name
                                 Text(
-                                    text = pubName,
+                                    text = "$pubName - $rate%", // Show pub name and rate
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.weight(1f)
                                 )
 
                                 // Floating Action Button for each pub
                                 FloatingActionButton(
-                                    onClick = { onNavigateToPubDetails(pubId) }, // Navigate to details
+                                    onClick = { onNavigateToPubDetails(pubId) }, // Navigate to PubDetailsScreen
                                     modifier = Modifier.size(65.dp),
                                     containerColor = Color.Red,
                                     contentColor = Color.White
@@ -290,29 +298,26 @@ fun HomeScreen(
                         }
                     }
 
-                    // Add logout button as the last item in the list
-                    item {
-                        Spacer(modifier = Modifier.height(16.dp))
 
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    FirebaseAuth.getInstance().signOut() // Log out
-                                    onLogout() // Navigate back to the login screen
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                        ) {
-                            Text("Logout")
-                        }
-                    }
                 }
             }
         }
     }
+}
+
+
+// Helper function: Increment pub rate
+private fun incrementPubRate(pubId: String, onComplete: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+
+    db.collection("pubs").document(pubId)
+        .update("rate", com.google.firebase.firestore.FieldValue.increment(1)) // Increment rate by 1
+        .addOnSuccessListener {
+            onComplete() // Notify the caller of the success
+        }
+        .addOnFailureListener { e ->
+            e.printStackTrace() // Log the error (optional)
+        }
 }
 
 // Helper function: Fetch pubs from Firestore
@@ -323,8 +328,11 @@ private fun fetchPubsFromDatabase(onResult: (List<Pair<String, String>>) -> Unit
         .whereEqualTo("city", "Limerick") // Query pubs in Limerick
         .get()
         .addOnSuccessListener { documents ->
-            val pubs = documents.map { it.id to (it.getString("name") ?: "Unnamed Pub") }
-            onResult(pubs) // Return pubId and pubName
+            val pubs = documents.map {
+                val rate = it.getLong("rate")?.toString() ?: "0" // Get the rate field (default to "0" if missing)
+                it.id to "${it.getString("name") ?: "Unnamed Pub"}|$rate" // Include the rate in the second part
+            }.sortedByDescending { it.second.split("|")[1].toIntOrNull() ?: 0 } // Sort by rate in descending order
+            onResult(pubs) // Return pubId and pubName with rate
         }
         .addOnFailureListener {
             onResult(listOf()) // Return empty list on failure

@@ -53,6 +53,12 @@ fun AppNavigation() {
                 onLogout = { navController.navigate("login") { popUpTo(0) } },
                 onNavigateToPubDetails = { pubId ->
                     navController.navigate("pubDetails/$pubId") // Navigate to PubDetailsScreen
+                },
+                onProfileClick = {
+                    navController.navigate("profile") // Navigate to Profile screen
+                },
+                onSettingsClick = {
+                    navController.navigate("settings") // Navigate to Settings screen
                 }
             )
         }
@@ -68,6 +74,9 @@ fun AppNavigation() {
                 onBack = { navController.popBackStack() }
             )
         }
+
+
+        }
     }
-}
+
 

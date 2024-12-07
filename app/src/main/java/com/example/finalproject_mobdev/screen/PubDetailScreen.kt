@@ -3,8 +3,8 @@
 package com.example.finalproject_mobdev.screen
 
 import androidx.compose.foundation.layout.* // Correct imports
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,21 +15,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import com.example.finalproject_mobdev.ui.theme.Finalproject_MOBDEVTheme // Import your theme
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.draw.scale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PubDetailsScreen(
     pubId: String, // Pub ID to fetch details from Firestore
     onBack: () -> Unit // Callback to navigate back
 ) {
-    Finalproject_MOBDEVTheme { // Wrap the screen in your theme to apply the background
+    // Dark mode state
+    var isDarkMode by remember { mutableStateOf(false) }
+
+    Finalproject_MOBDEVTheme(darkTheme = isDarkMode) { // Wrap the screen in your theme to apply Dark Mode
         val db = FirebaseFirestore.getInstance() // Initialize Firestore
         var pubDetails by remember { mutableStateOf<Map<String, Any>?>(null) } // State for pub details
         var comments by remember { mutableStateOf<List<String>>(listOf()) } // State for comments
         var newComment by remember { mutableStateOf("") } // State for new comment input
         var loading by remember { mutableStateOf(true) } // Loading state
+        val scrollState = rememberScrollState() // State for vertical scrolling
 
         // Fetch pub details and comments when pubId changes
         LaunchedEffect(pubId) {
@@ -60,6 +70,16 @@ fun PubDetailsScreen(
                         IconButton(onClick = onBack) { // Back button action
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { isDarkMode = !isDarkMode } // Toggle dark mode
+                        ) {
+                            Icon(
+                                imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = if (isDarkMode) "Light Mode" else "Dark Mode"
+                            )
+                        }
                     }
                 )
             }
@@ -88,8 +108,10 @@ fun PubDetailsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(scrollState) // Add vertical scroll
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.Start // Corrected here
                     ) {
                         // Pub Name
                         Text(
@@ -98,18 +120,26 @@ fun PubDetailsScreen(
                             textAlign = TextAlign.Start
                         )
 
-                        // Thermometer with Fire Icon
-                        Thermometer()
+                        // CraicMeter (Interactive Thermometer)
+                        val rate = (pubDetails?.get("rate") as? Long)?.toInt() ?: 0 // Get the rate from Firestore
+                        CraicMeter(pubId = pubId, initialRate = rate)
 
-                        // Pub City
+                        // Address
                         Text(
-                            text = "City: ${pubDetails?.get("city") as? String ?: "Unknown City"}",
+                            text = "Address: ${pubDetails?.get("address") as? String ?: "No address available."}",
                             style = MaterialTheme.typography.bodyLarge
                         )
-                        // Pub Description
+
+                        // Close Time
                         Text(
-                            text = "Description: ${pubDetails?.get("description") as? String ?: "No description available."}",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "Close Time: ${pubDetails?.get("closeTime") as? String ?: "No close time available."}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+
+                        // Phone Number
+                        Text(
+                            text = "Phone Number: ${pubDetails?.get("phoneNumber") as? String ?: "No phone number available."}",
+                            style = MaterialTheme.typography.bodyLarge
                         )
 
                         // Comments Section
@@ -167,26 +197,72 @@ fun PubDetailsScreen(
 }
 
 @Composable
-fun Thermometer() {
-    // Placeholder for thermometer logic
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 8.dp)
+fun CraicMeter(pubId: String, initialRate: Int) {
+    var rate by remember { mutableStateOf(initialRate) } // Local state for the slider
+    val db = FirebaseFirestore.getInstance() // Firestore instance
+    val fireEmojiVisible = rate > 60 // Show fire emoji if rate > 60
+    val fireEmojiScale by animateFloatAsState(if (fireEmojiVisible) 1.5f else 1f)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Display the current value of the CraicMeter
         Text(
-            text = "🔥",
-            fontSize = 24.sp,
-            color = Color.Red,
-            modifier = Modifier.padding(end = 8.dp)
+            text = when {
+                rate > 60 -> "🔥 High Craic"
+                rate < 40 -> "🧊 Low Craic"
+                else -> "🎵 Medium Craic"
+            },
+            style = MaterialTheme.typography.headlineSmall,
+
         )
-        LinearProgressIndicator(
-            progress = 0.7f, // Example: 70% (this can be dynamic)
+        Text(
+            text = "$rate%", // Displays the current rate percentage
+            style = MaterialTheme.typography.bodyLarge,
             color = Color.Red,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Fire Emoji Animation
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
+                .size(80.dp)
+                .scale(fireEmojiScale)
+        ) {
+            this@Column.AnimatedVisibility(visible = fireEmojiVisible) {
+                Text(
+                    text = "🔥",
+                    fontSize = 40.sp,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // CraicMeter Slider
+        Slider(
+            value = rate.toFloat(),
+            onValueChange = { newRate -> rate = newRate.toInt() },
+            onValueChangeFinished = {
+                db.collection("pubs").document(pubId)
+                    .update("rate", rate)
+            },
+            valueRange = 0f..100f,
+            colors = SliderDefaults.colors(
+                thumbColor = Color.Red,
+                activeTrackColor = Color.Red,
+                inactiveTrackColor = Color.Gray
+            ),
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
-
-

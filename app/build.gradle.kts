@@ -94,5 +94,7 @@ dependencies {
     implementation ("com.google.firebase:firebase-firestore-ktx")
     implementation ("androidx.compose.material:material-icons-core:1.5.1")
     implementation ("androidx.compose.material:material-icons-extended:1.5.1")
+    implementation ("androidx.compose.material3:material3:1.2.0-alpha02")
+    implementation ("androidx.compose.animation:animation:1.4.3")
 
 }
