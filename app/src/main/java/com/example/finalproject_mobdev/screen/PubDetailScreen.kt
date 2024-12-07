@@ -2,7 +2,11 @@
 
 package com.example.finalproject_mobdev.screen
 
-import androidx.compose.foundation.layout.* // Correct imports
+import android.content.Context
+import android.media.MediaPlayer
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -17,12 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
-import com.example.finalproject_mobdev.ui.theme.Finalproject_MOBDEVTheme // Import your theme
+import com.example.finalproject_mobdev.R // Ensure this is correctly imported
+import com.example.finalproject_mobdev.ui.theme.Finalproject_MOBDEVTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,7 +117,7 @@ fun PubDetailsScreen(
                             .verticalScroll(scrollState) // Add vertical scroll
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.Start // Corrected here
+                        horizontalAlignment = Alignment.Start
                     ) {
                         // Pub Name
                         Text(
@@ -120,25 +126,32 @@ fun PubDetailsScreen(
                             textAlign = TextAlign.Start
                         )
 
+                        // Add the CraicMeter Title
+                        Text(
+                            text = "CraicMeter",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.Blue
+                        )
+
                         // CraicMeter (Interactive Thermometer)
                         val rate = (pubDetails?.get("rate") as? Long)?.toInt() ?: 0 // Get the rate from Firestore
                         CraicMeter(pubId = pubId, initialRate = rate)
 
                         // Address
                         Text(
-                            text = "Address: ${pubDetails?.get("address") as? String ?: "No address available."}",
+                            text = "Address: ${pubDetails?.get("Address") as? String ?: "No address available."}",
                             style = MaterialTheme.typography.bodyLarge
                         )
 
                         // Close Time
                         Text(
-                            text = "Close Time: ${pubDetails?.get("closeTime") as? String ?: "No close time available."}",
+                            text = "Close Time: ${pubDetails?.get("Close") as? String ?: "No close time available."}",
                             style = MaterialTheme.typography.bodyLarge
                         )
 
                         // Phone Number
                         Text(
-                            text = "Phone Number: ${pubDetails?.get("phoneNumber") as? String ?: "No phone number available."}",
+                            text = "Phone Number: ${pubDetails?.get("phone") as? String ?: "No phone number available."}",
                             style = MaterialTheme.typography.bodyLarge
                         )
 
@@ -200,8 +213,8 @@ fun PubDetailsScreen(
 fun CraicMeter(pubId: String, initialRate: Int) {
     var rate by remember { mutableStateOf(initialRate) } // Local state for the slider
     val db = FirebaseFirestore.getInstance() // Firestore instance
-    val fireEmojiVisible = rate > 60 // Show fire emoji if rate > 60
-    val fireEmojiScale by animateFloatAsState(if (fireEmojiVisible) 1.5f else 1f)
+    val context = LocalContext.current // Access context for vibration
+    var currentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
     Column(
         modifier = Modifier
@@ -216,8 +229,7 @@ fun CraicMeter(pubId: String, initialRate: Int) {
                 rate < 40 -> "🧊 Low Craic"
                 else -> "🎵 Medium Craic"
             },
-            style = MaterialTheme.typography.headlineSmall,
-
+            style = MaterialTheme.typography.headlineSmall
         )
         Text(
             text = "$rate%", // Displays the current rate percentage
@@ -228,31 +240,32 @@ fun CraicMeter(pubId: String, initialRate: Int) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Fire Emoji Animation
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(80.dp)
-                .scale(fireEmojiScale)
-        ) {
-            this@Column.AnimatedVisibility(visible = fireEmojiVisible) {
-                Text(
-                    text = "🔥",
-                    fontSize = 40.sp,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         // CraicMeter Slider
         Slider(
             value = rate.toFloat(),
-            onValueChange = { newRate -> rate = newRate.toInt() },
+            onValueChange = { newRate ->
+                val oldRate = rate
+                rate = newRate.toInt()
+
+                vibrateContinuously(context)
+
+                // Only play sounds when transitioning to a new Craic range
+                if (getCraicRange(oldRate) != getCraicRange(rate)) {
+                    // Stop and release the current MediaPlayer
+                    currentMediaPlayer?.stop()
+                    currentMediaPlayer?.release()
+
+                    // Play the appropriate sound for the new Craic range
+                    currentMediaPlayer = when {
+                        rate > 60 -> MediaPlayer.create(context, R.raw.oy) // High Craic
+                        rate in 40..59 -> MediaPlayer.create(context, R.raw.snoring) // Medium Craic
+                        else -> MediaPlayer.create(context, R.raw.cricket) // Low Craic
+                    }
+                    currentMediaPlayer?.start()
+                }
+            },
             onValueChangeFinished = {
-                db.collection("pubs").document(pubId)
-                    .update("rate", rate)
+                db.collection("pubs").document(pubId).update("rate", rate)
             },
             valueRange = 0f..100f,
             colors = SliderDefaults.colors(
@@ -264,5 +277,25 @@ fun CraicMeter(pubId: String, initialRate: Int) {
         )
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+// Helper function to determine the Craic range
+fun getCraicRange(rate: Int): String {
+    return when {
+        rate > 60 -> "HIGH"
+        rate in 40..59 -> "MEDIUM"
+        else -> "LOW"
+    }
+}
+
+// Function for continuous vibration
+fun vibrateContinuously(context: Context) {
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+    } else {
+        @Suppress("DEPRECATION")
+        vibrator.vibrate(50)
     }
 }
