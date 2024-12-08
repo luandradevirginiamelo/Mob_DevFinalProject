@@ -11,7 +11,9 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class) // Ensure ExperimentalMaterial3Api is opted in
 @Composable
-fun ProfileScreen(onBack: () -> Unit) {
+fun ProfileScreen(
+    onBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -24,16 +26,15 @@ fun ProfileScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding), // Apply padding from Scaffold
-            contentAlignment = Alignment.Center // Center the content
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "This is the Profile Screen", // Profile screen text
-                style = MaterialTheme.typography.headlineMedium // Apply a headline style
-            )
+            Text("This is the Profile Screen", style = MaterialTheme.typography.headlineMedium)
         }
     }
 }

@@ -292,7 +292,7 @@ fun HomeScreen(
                                     containerColor = Color.Red,
                                     contentColor = Color.White
                                 ) {
-                                    Text("🔥RATE")
+                                    Text("🔥Details")
                                 }
                             }
                         }
@@ -329,10 +329,12 @@ private fun fetchPubsFromDatabase(onResult: (List<Pair<String, String>>) -> Unit
         .get()
         .addOnSuccessListener { documents ->
             val pubs = documents.map {
-                val rate = it.getLong("rate")?.toString() ?: "0" // Get the rate field (default to "0" if missing)
-                it.id to "${it.getString("name") ?: "Unnamed Pub"}|$rate" // Include the rate in the second part
-            }.sortedByDescending { it.second.split("|")[1].toIntOrNull() ?: 0 } // Sort by rate in descending order
-            onResult(pubs) // Return pubId and pubName with rate
+                // Get the averageRating, round it, and convert to a string
+                val averageRating = it.getDouble("averageRating")?.toInt()?.toString() ?: "0"  // Get the averageRating field (default to "0" if missing)
+                // Include the rounded averageRating in the second part
+                it.id to "${it.getString("name") ?: "Unnamed Pub"}|$averageRating"
+            }.sortedByDescending { it.second.split("|")[1].toIntOrNull() ?: 0 } // Sort by rounded averageRating
+            onResult(pubs) // Return pubId and pubName with averageRating
         }
         .addOnFailureListener {
             onResult(listOf()) // Return empty list on failure

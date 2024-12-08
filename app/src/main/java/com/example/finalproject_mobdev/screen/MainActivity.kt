@@ -52,31 +52,59 @@ fun AppNavigation() {
             HomeScreen(
                 onLogout = { navController.navigate("login") { popUpTo(0) } },
                 onNavigateToPubDetails = { pubId ->
-                    navController.navigate("pubDetails/$pubId") // Navigate to PubDetailsScreen
+                    navController.navigate("pubDetails/$pubId")
                 },
                 onProfileClick = {
-                    navController.navigate("profile") // Navigate to Profile screen
+                    navController.navigate("profile")
                 },
                 onSettingsClick = {
-                    navController.navigate("settings") // Navigate to Settings screen
+                    navController.navigate("settings")
                 }
             )
         }
 
-        // Pub Detail Screen
+        // Pub Details Screen
         composable(
             route = "pubDetails/{pubId}",
             arguments = listOf(navArgument("pubId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val pubId = backStackEntry.arguments?.getString("pubId") ?: return@composable
+            val pubId = backStackEntry.arguments?.getString("pubId") ?: ""
             PubDetailsScreen(
+                pubId = pubId,
+                onBack = { navController.popBackStack() },
+                onNavigateToPubRate = {
+                    navController.navigate("pubRate/$pubId")
+                }
+            )
+        }
+
+        // Pub Rate Screen
+        composable(
+            route = "pubRate/{pubId}",
+            arguments = listOf(navArgument("pubId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val pubId = backStackEntry.arguments?.getString("pubId") ?: ""
+            PubRateScreen(
                 pubId = pubId,
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // Profile Screen
+        composable("profile") {
+            ProfileScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
 
+        // Settings Screen
+        composable("settings") {
+            SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
     }
+}
+
 
 

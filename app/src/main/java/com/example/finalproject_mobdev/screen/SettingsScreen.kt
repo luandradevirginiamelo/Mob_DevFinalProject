@@ -11,7 +11,9 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class) // Ensure ExperimentalMaterial3Api is opted in
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(
+    onBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -24,16 +26,15 @@ fun SettingsScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding), // Apply padding from Scaffold
-            contentAlignment = Alignment.Center // Center the content
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "This is the Settings Screen", // Settings screen text
-                style = MaterialTheme.typography.headlineMedium // Apply a headline style
-            )
+            Text("This is the Settings Screen", style = MaterialTheme.typography.headlineMedium)
         }
     }
 }
