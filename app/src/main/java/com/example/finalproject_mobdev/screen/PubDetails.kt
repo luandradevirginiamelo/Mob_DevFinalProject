@@ -129,10 +129,26 @@ fun PubDetailsScreen(
                                     onClick = onNavigateToPubRate, // Navigate to PubRateScreen
                                     containerColor = Color.Red,
                                     contentColor = Color.White,
-                                    modifier = Modifier.size(50.dp) // Adjust size if needed
+                                    modifier = Modifier
+                                        .size(80.dp) // Slightly larger button for prominence
+                                        .padding(8.dp), // Add some padding around the button
+                                    elevation = FloatingActionButtonDefaults.elevation(
+                                        defaultElevation = 8.dp, // Add subtle elevation
+                                        pressedElevation = 12.dp // More elevation when pressed
+                                )
                                 ) {
-                                    Text("🔥")
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = "Rate 🔥",
+                                            style = MaterialTheme.typography.labelLarge.copy(color = Color.White), // Custom text style
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
+
                             }
 
                             // CraicMeter (Thermometer)
