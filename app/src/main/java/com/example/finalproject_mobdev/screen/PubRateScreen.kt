@@ -25,12 +25,18 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.clickable
+import androidx.navigation.NavHostController
+import android.util.Log
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PubRateScreen(
-    pubId: String, // Pub ID to fetch details from Firestore
-    onBack: () -> Unit // Callback to navigate back
+    pubId: String,
+    navController: NavHostController, // Exige navController
+    onBack: () -> Unit
 ) {
     // Dark mode state
     var isDarkMode by remember { mutableStateOf(false) }
@@ -60,7 +66,7 @@ fun PubRateScreen(
                     .get()
                     .await()
 
-                // Map each comment's `userId` to `nameandsurname`
+                // Map each comment's userId to nameandsurname
                 val mappedComments = commentDocs.documents.mapNotNull { doc ->
                     val text = doc.getString("text")
                     val userId = doc.getString("userId")
@@ -127,6 +133,7 @@ fun PubRateScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
+
                         Text(
                             text = pubDetails?.get("name") as? String ?: "Unknown Pub",
                             style = MaterialTheme.typography.headlineMedium
@@ -136,6 +143,15 @@ fun PubRateScreen(
                             pubId = pubId,
                             initialRate = (pubDetails?.get("averageRating") as? Long)?.toInt() ?: 0,
                             onRateChange = { newRate -> rate = newRate } // Track the rate
+                        )
+                        Text(
+                            text = "Gallery: Add photos to the gallery",
+                            color = Color(0xFFAA0066),
+                            modifier = Modifier.clickable {
+                                navController.navigate("photo_upload") // Navega para a tela PhotoUploadScreen
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Start
                         )
 
                         Text(
