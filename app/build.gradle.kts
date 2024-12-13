@@ -99,4 +99,5 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") // Verifique a versão mais recente
     implementation ("com.google.firebase:firebase-storage")
     implementation ("io.coil-kt:coil-compose:2.3.0")
+
 }

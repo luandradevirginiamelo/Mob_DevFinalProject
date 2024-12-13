@@ -2,7 +2,6 @@
 
 package com.example.finalproject_mobdev.screen
 
-
 import android.media.MediaPlayer
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -25,20 +24,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.clickable
 import androidx.navigation.NavHostController
-import android.util.Log
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PubRateScreen(
     pubId: String,
-    navController: NavHostController, // Exige navController
+    navController: NavHostController,
     onBack: () -> Unit
 ) {
-    // Dark mode state
     var isDarkMode by remember { mutableStateOf(false) }
 
     Finalproject_MOBDEVTheme(darkTheme = isDarkMode) {
@@ -46,15 +40,13 @@ fun PubRateScreen(
         val auth = FirebaseAuth.getInstance()
         val currentUid = auth.currentUser?.uid
 
-        // State variables
         var pubDetails by remember { mutableStateOf<Map<String, Any>?>(null) }
         var comments by remember { mutableStateOf<List<Map<String, String>>>(listOf()) }
         var newComment by remember { mutableStateOf("") }
-        var rate by remember { mutableStateOf(0) } // Track the user's current rate
+        var rate by remember { mutableStateOf(0) }
         var loading by remember { mutableStateOf(true) }
         val coroutineScope = rememberCoroutineScope()
 
-        // Fetch pub details and comments when pubId changes
         LaunchedEffect(pubId) {
             loading = true
             try {
@@ -66,21 +58,24 @@ fun PubRateScreen(
                     .get()
                     .await()
 
-                // Map each comment's userId to nameandsurname
                 val mappedComments = commentDocs.documents.mapNotNull { doc ->
                     val text = doc.getString("text")
                     val userId = doc.getString("userId")
                     val rateValue = doc.getLong("rate")?.toInt()
+                    val commentId = doc.id
                     if (text != null && userId != null && rateValue != null) {
-                        val userDocument = db.collection("user").document(userId).get().await()
-                        val name = userDocument.getString("nameandsurname") ?: "Unknown User"
-                        mapOf("text" to text, "name" to name, "rate" to rateValue.toString())
+                        mapOf(
+                            "text" to text,
+                            "userId" to userId,
+                            "rate" to rateValue.toString(),
+                            "commentId" to commentId
+                        )
                     } else {
                         null
                     }
                 }
 
-                mappedComments.also { comments = it }
+                comments = mappedComments
             } catch (e: Exception) {
                 pubDetails = null
             } finally {
@@ -133,7 +128,6 @@ fun PubRateScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-
                         Text(
                             text = pubDetails?.get("name") as? String ?: "Unknown Pub",
                             style = MaterialTheme.typography.headlineMedium
@@ -142,16 +136,7 @@ fun PubRateScreen(
                         CraicMeter(
                             pubId = pubId,
                             initialRate = (pubDetails?.get("averageRating") as? Long)?.toInt() ?: 0,
-                            onRateChange = { newRate -> rate = newRate } // Track the rate
-                        )
-                        Text(
-                            text = "Gallery: Add photos to the gallery",
-                            color = Color(0xFFAA0066),
-                            modifier = Modifier.clickable {
-                                navController.navigate("photo_upload") // Navega para a tela PhotoUploadScreen
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Start
+                            onRateChange = { newRate -> rate = newRate }
                         )
 
                         Text(
@@ -159,6 +144,7 @@ fun PubRateScreen(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         comments.forEach { comment ->
+                            val isUserComment = comment["userId"] == currentUid // Check if it's the logged user's comment
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -171,10 +157,35 @@ fun PubRateScreen(
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        text = "User: ${comment["userId"]}, Rate: ${comment["rate"]}%",
+                                        text = "Rate: ${comment["rate"]}%",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color.Gray
                                     )
+                                    if (isUserComment) {
+                                        // Show delete button only for the comment's author
+                                        Button(
+                                            onClick = {
+                                                val commentId = comment["commentId"]
+                                                if (commentId != null) {
+                                                    coroutineScope.launch {
+                                                        deleteComment(
+                                                            db = db,
+                                                            pubId = pubId,
+                                                            commentId = commentId
+                                                        )
+                                                        comments = comments.filter { it["commentId"] != commentId }
+                                                    }
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color.Red,
+                                                contentColor = Color.White
+                                            ),
+                                            modifier = Modifier.align(Alignment.End)
+                                        ) {
+                                            Text("Delete your rating")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -189,21 +200,21 @@ fun PubRateScreen(
                         Button(
                             onClick = {
                                 if (newComment.isNotBlank() && currentUid != null) {
-                                    // Add comment to Firestore
                                     db.collection("pubs").document(pubId)
                                         .collection("comments")
                                         .add(
                                             mapOf(
                                                 "text" to newComment,
                                                 "userId" to currentUid,
-                                                "rate" to rate // Save the current rate
+                                                "rate" to rate
                                             )
                                         )
-                                        .addOnSuccessListener {
+                                        .addOnSuccessListener { documentReference ->
                                             comments = comments + mapOf(
                                                 "text" to newComment,
                                                 "userId" to currentUid,
-                                                "rate" to rate.toString()
+                                                "rate" to rate.toString(),
+                                                "commentId" to documentReference.id
                                             )
                                             newComment = ""
 
@@ -258,7 +269,7 @@ fun CraicMeter(pubId: String, initialRate: Int, onRateChange: (Int) -> Unit) {
             onValueChange = { newRate ->
                 val oldRate = rate
                 rate = newRate.toInt()
-                onRateChange(rate) // Notify the parent of rate change
+                onRateChange(rate)
 
                 if (getCraicRange(oldRate) != getCraicRange(rate)) {
                     currentMediaPlayer?.stop()
@@ -288,6 +299,19 @@ fun getCraicRange(rate: Int): String {
         rate > 60 -> "HIGH"
         rate in 40..59 -> "MEDIUM"
         else -> "LOW"
+    }
+}
+
+suspend fun deleteComment(db: FirebaseFirestore, pubId: String, commentId: String) {
+    try {
+        db.collection("pubs")
+            .document(pubId)
+            .collection("comments")
+            .document(commentId)
+            .delete()
+            .await()
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
 
