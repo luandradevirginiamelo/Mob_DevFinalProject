@@ -135,7 +135,7 @@ fun PubDetailsScreen(
                                     elevation = FloatingActionButtonDefaults.elevation(
                                         defaultElevation = 8.dp, // Add subtle elevation
                                         pressedElevation = 12.dp // More elevation when pressed
-                                )
+                                    )
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
