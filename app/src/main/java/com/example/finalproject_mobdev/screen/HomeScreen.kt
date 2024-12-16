@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+
 package com.example.finalproject_mobdev.screen
 
 import android.Manifest
@@ -7,6 +9,7 @@ import android.content.Context
 import android.content.IntentSender
 import android.location.Geocoder
 import android.os.Looper
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,36 +30,43 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.util.Locale
-import androidx.compose.foundation.background
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.finalproject_mobdev.utils.openGoogleMaps
+import com.example.finalproject_mobdev.utils.getAddressFromLocation
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+
 @Composable
 fun HomeScreen(
+    homeViewModel: HomeViewModel = viewModel(),
     onLogout: () -> Unit,
     onNavigateToPubDetails: (String) -> Unit,
     onProfileClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    navController: NavController
 ) {
+    val locationText by homeViewModel.locationText.collectAsState()
+    val messageText by homeViewModel.messageText.collectAsState()
+    val pubsList by homeViewModel.pubsList.collectAsState()
 
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // State variables
-    var userName by remember { mutableStateOf<String?>(null) } // User name
-    var locationText by remember { mutableStateOf("No location selected") } // Location street
-    var messageText by remember { mutableStateOf("") } // Location city
-    var pubsList by remember { mutableStateOf(listOf<Pair<String, String>>()) } // List of pubs (pubId, pubName|rate)
-
-    // Dark mode state
-    var isDarkMode by remember { mutableStateOf(false) } // Default is light mode
-
-    // State for the drawer
+    val locationPermissionsState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+    var userName by remember { mutableStateOf<String?>(null) }
+    var showPermissionErrorDialog by remember { mutableStateOf(false) }
+    var isDarkMode by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // Fetch user name when the screen is loaded
     LaunchedEffect(auth.currentUser?.uid) {
         val uid = auth.currentUser?.uid
         if (uid != null) {
@@ -65,46 +75,101 @@ fun HomeScreen(
                     userName = document.getString("nameandsurname")
                 }
                 .addOnFailureListener {
-                    userName = "Guest" // Fallback if data fetch fails
+                    userName = "Guest"
                 }
         }
     }
 
-    // Handle permissions for location
-    val locationPermissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
-    )
+    LaunchedEffect(Unit) {
+        if (!locationPermissionsState.allPermissionsGranted) {
+            locationPermissionsState.launchMultiplePermissionRequest()
+        }
+    }
 
-    // Drawer Content (Sidebar)
-    // Theme wrapping with dynamic Dark Mode
+    // Observe the flag "shouldRefresh" from PubDetailsScreen
+    val shouldRefresh = navController.currentBackStackEntry?.savedStateHandle
+        ?.getLiveData<Boolean>("shouldRefresh")
+
+    LaunchedEffect(shouldRefresh?.value) {
+        if (shouldRefresh?.value == true) {
+            shouldRefresh.value = false // Reset the value to prevent duplicate refreshes
+            if (locationPermissionsState.allPermissionsGranted) {
+                homeViewModel.updateLocation("Retrieving location...", "")
+                checkIfGpsIsEnabled(
+                    context = context,
+                    onGpsEnabled = {
+                        getCurrentLocation(context, fusedLocationClient) { location ->
+                            if (location != null) {
+                                homeViewModel.updateLocation(location.first, location.second)
+
+                                if (location.second == "Limerick") {
+                                    fetchPubsFromDatabase { pubs ->
+                                        homeViewModel.updatePubs(
+                                            pubs.sortedByDescending {
+                                                it.second.split("|")[1].toIntOrNull() ?: 0
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    homeViewModel.updatePubs(listOf())
+                                    homeViewModel.updateLocation(location.first, "No pubs available in your city.")
+                                }
+                            } else {
+                                homeViewModel.updateLocation("Unable to retrieve location", "Unable to retrieve city")
+                            }
+                        }
+                    },
+                    onGpsError = { errorMessage ->
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(errorMessage)
+                        }
+                    }
+                )
+            } else {
+                showPermissionErrorDialog = true
+            }
+        }
+    }
+
+    if (showPermissionErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionErrorDialog = false },
+            confirmButton = {
+                Button(onClick = {
+                    showPermissionErrorDialog = false
+                    locationPermissionsState.launchMultiplePermissionRequest()
+                }) {
+                    Text("Retry")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showPermissionErrorDialog = false }) {
+                    Text("Exit")
+                }
+            },
+            title = { Text("Permission Required") },
+            text = { Text("Location permission is required to use this app. Please enable it to continue.") }
+        )
+    }
+
     val drawerContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (isDarkMode) Color.DarkGray else Color.Black) // Adjust for Dark Mode
+                .background(if (isDarkMode) Color.DarkGray else Color.Black)
                 .padding(16.dp)
         ) {
             Spacer(modifier = Modifier.height(40.dp))
-
             Text(
                 text = "Menu",
                 style = MaterialTheme.typography.headlineSmall,
                 color = Color.White,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Profile Button
             Button(
-                onClick = {
-                    coroutineScope.launch {
-                        onProfileClick() // Navigate to Profile screen
-                    }
-                },
+                onClick = { coroutineScope.launch { onProfileClick() } },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Gray,
                     contentColor = Color.White
@@ -113,16 +178,10 @@ fun HomeScreen(
             ) {
                 Text("Profile")
             }
-
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Settings Button
             Button(
-                onClick = {
-                    coroutineScope.launch {
-                        onSettingsClick() // Navigate to Settings screen
-                    }
-                },
+                onClick = { coroutineScope.launch { onSettingsClick() } },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Gray,
                     contentColor = Color.White
@@ -131,16 +190,10 @@ fun HomeScreen(
             ) {
                 Text("Settings")
             }
-
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Logout Button
             Button(
-                onClick = {
-                    coroutineScope.launch {
-                        onLogout() // Logout and navigate to Login screen
-                    }
-                },
+                onClick = { coroutineScope.launch { onLogout() } },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Red,
                     contentColor = Color.White
@@ -152,13 +205,12 @@ fun HomeScreen(
         }
     }
 
-    // Navigation Drawer
     ModalNavigationDrawer(
         drawerContent = drawerContent,
         drawerState = drawerState
     ) {
         Scaffold(
-            snackbarHost = { SnackbarHost(remember { SnackbarHostState() }) },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = { Text("Home") },
@@ -178,7 +230,6 @@ fun HomeScreen(
                     .padding(padding)
                     .padding(16.dp)
             ) {
-                // Fixed part (Welcome Message and Update Location Button)
                 userName?.let { name ->
                     Text(
                         text = "Welcome to Limerick, $name! See below where the best Craic is now.",
@@ -190,36 +241,39 @@ fun HomeScreen(
                 Button(
                     onClick = {
                         if (locationPermissionsState.allPermissionsGranted) {
-                            locationText = "Retrieving location..."
-                            messageText = ""
+                            homeViewModel.updateLocation("Retrieving location...", "")
+                            checkIfGpsIsEnabled(
+                                context = context,
+                                onGpsEnabled = {
+                                    getCurrentLocation(context, fusedLocationClient) { location ->
+                                        if (location != null) {
+                                            homeViewModel.updateLocation(location.first, location.second)
 
-                            // Check if GPS is enabled, then request the new location
-                            checkIfGpsIsEnabled(context) {
-                                getCurrentLocation(context, fusedLocationClient) { location ->
-                                    if (location != null) {
-                                        locationText = location.first // Street
-                                        messageText = location.second // City
-
-                                        // Fetch pubs if the city is Limerick
-                                        if (messageText == "Limerick") {
-                                            fetchPubsFromDatabase { pubs ->
-                                                pubsList = pubs.sortedByDescending {
-                                                    it.second.split("|")[1].toIntOrNull() ?: 0
+                                            if (location.second == "Limerick") {
+                                                fetchPubsFromDatabase { pubs ->
+                                                    homeViewModel.updatePubs(
+                                                        pubs.sortedByDescending {
+                                                            it.second.split("|")[1].toIntOrNull() ?: 0
+                                                        }
+                                                    )
                                                 }
+                                            } else {
+                                                homeViewModel.updatePubs(listOf())
+                                                homeViewModel.updateLocation(location.first, "No pubs available in your city.")
                                             }
                                         } else {
-                                            pubsList = listOf() // Clear pubs if not in Limerick
-                                            messageText = "No pubs available in your city."
+                                            homeViewModel.updateLocation("Unable to retrieve location", "Unable to retrieve city")
                                         }
-                                    } else {
-                                        locationText = "Unable to retrieve location"
-                                        messageText = "Unable to retrieve city"
+                                    }
+                                },
+                                onGpsError = { errorMessage ->
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(errorMessage)
                                     }
                                 }
-                            }
+                            )
                         } else {
-                            // Request location permissions
-                            locationPermissionsState.launchMultiplePermissionRequest()
+                            showPermissionErrorDialog = true
                         }
                     },
                     modifier = Modifier
@@ -231,26 +285,39 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Dynamic part (Scrollable list with pubs and logout button)
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Add location details
                     item {
+                        // Linha com o ícone de localização, texto e botão "Maps"
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth() // Garante que o Row ocupe toda a largura
+                                .padding(8.dp)
                         ) {
+                            // Ícone de localização
                             Icon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = "Location Icon",
-                                tint = Color.Red, // Icon color
+                                tint = Color.Red,
                                 modifier = Modifier.size(20.dp)
                             )
+
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(locationText, style = MaterialTheme.typography.bodyLarge)
+
+                            // Texto com a localização
+                            Text(
+                                text = locationText,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f)) // Empurra o botão "Maps" para o lado direito
+
+
                         }
 
+                        // Exibe a mensagem caso exista algum texto em `messageText`
                         if (messageText.isNotEmpty()) {
                             Text(
                                 text = messageText,
@@ -260,12 +327,12 @@ fun HomeScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp)) // Espaçamento adicional
                     }
 
-                    // Add pubs list
+
                     items(pubsList) { (pubId, pubNameWithRate) ->
-                        val (pubName, rate) = pubNameWithRate.split("|") // Extract pub name and rate
+                        val (pubName, rate) = pubNameWithRate.split("|")
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -278,16 +345,14 @@ fun HomeScreen(
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Pub Name
                                 Text(
-                                    text = "$pubName - $rate%", // Show pub name and rate
+                                    text = "$pubName - $rate%",
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                // Floating Action Button for each pub
                                 FloatingActionButton(
-                                    onClick = { onNavigateToPubDetails(pubId) }, // Navigate to PubDetailsScreen
+                                    onClick = { onNavigateToPubDetails(pubId) },
                                     modifier = Modifier.size(65.dp),
                                     containerColor = Color.Red,
                                     contentColor = Color.White
@@ -297,27 +362,10 @@ fun HomeScreen(
                             }
                         }
                     }
-
-
                 }
             }
         }
     }
-}
-
-
-// Helper function: Increment pub rate
-private fun incrementPubRate(pubId: String, onComplete: () -> Unit) {
-    val db = FirebaseFirestore.getInstance()
-
-    db.collection("pubs").document(pubId)
-        .update("rate", com.google.firebase.firestore.FieldValue.increment(1)) // Increment rate by 1
-        .addOnSuccessListener {
-            onComplete() // Notify the caller of the success
-        }
-        .addOnFailureListener { e ->
-            e.printStackTrace() // Log the error (optional)
-        }
 }
 
 // Helper function: Fetch pubs from Firestore
@@ -325,25 +373,23 @@ private fun fetchPubsFromDatabase(onResult: (List<Pair<String, String>>) -> Unit
     val db = FirebaseFirestore.getInstance()
 
     db.collection("pubs")
-        .whereEqualTo("city", "Limerick") // Query pubs in Limerick
+        .whereEqualTo("city", "Limerick")
         .get()
         .addOnSuccessListener { documents ->
             val pubs = documents.map {
-                // Get the averageRating, round it, and convert to a string
-                val averageRating = it.getDouble("averageRating")?.toInt()?.toString() ?: "0"  // Get the averageRating field (default to "0" if missing)
-                // Include the rounded averageRating in the second part
+                val averageRating = it.getDouble("averageRating")?.toInt()?.toString() ?: "0"
                 it.id to "${it.getString("name") ?: "Unnamed Pub"}|$averageRating"
-            }.sortedByDescending { it.second.split("|")[1].toIntOrNull() ?: 0 } // Sort by rounded averageRating
-            onResult(pubs) // Return pubId and pubName with averageRating
+            }.sortedByDescending { it.second.split("|")[1].toIntOrNull() ?: 0 }
+            onResult(pubs)
         }
         .addOnFailureListener {
-            onResult(listOf()) // Return empty list on failure
+            onResult(listOf())
         }
 }
 
 // Helper function: Get current location
 @SuppressLint("MissingPermission")
-private fun getCurrentLocation(
+fun getCurrentLocation(
     context: Context,
     fusedLocationClient: FusedLocationProviderClient,
     onLocationResult: (Pair<String, String>?) -> Unit
@@ -353,7 +399,6 @@ private fun getCurrentLocation(
         interval = 10000
         fastestInterval = 5000
     }
-
     val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val location = locationResult.lastLocation
@@ -371,40 +416,29 @@ private fun getCurrentLocation(
 }
 
 // Helper function: Check if GPS is enabled
-private fun checkIfGpsIsEnabled(context: Context, onEnabled: () -> Unit) {
+fun checkIfGpsIsEnabled(
+    context: Context,
+    onGpsEnabled: () -> Unit,
+    onGpsError: (String) -> Unit
+) {
     val activity = context as? Activity ?: return
-
     val locationRequest = LocationRequest.create().apply {
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
     val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
-
     val settingsClient = LocationServices.getSettingsClient(context)
     val task = settingsClient.checkLocationSettings(builder.build())
 
-    task.addOnSuccessListener { onEnabled() }
+    task.addOnSuccessListener { onGpsEnabled() }
     task.addOnFailureListener { exception ->
         if (exception is ResolvableApiException) {
             try {
                 exception.startResolutionForResult(activity, 1001)
-            } catch (_: IntentSender.SendIntentException) { /* Ignore */ }
+            } catch (_: IntentSender.SendIntentException) {
+                onGpsError("Oops! It's not possible to see where the Craic is without your location.")
+            }
+        } else {
+            onGpsError("Oops! It's not possible to see where the Craic is without your location.")
         }
-    }
-}
-
-// Helper function: Get address from latitude and longitude
-private fun getAddressFromLocation(context: Context, latitude: Double, longitude: Double): Pair<String, String>? {
-    return try {
-        val geocoder = Geocoder(context, Locale.getDefault())
-        val addresses = geocoder.getFromLocation(latitude, longitude, 1)
-        if (!addresses.isNullOrEmpty()) {
-            val address = addresses[0]
-            val street = address.thoroughfare ?: "Unknown Street"
-            val city = address.locality ?: "Unknown City"
-            Pair(street, city)
-        } else null
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
     }
 }

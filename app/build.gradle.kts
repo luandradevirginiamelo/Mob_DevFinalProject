@@ -73,7 +73,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx:21.0.3")
     implementation ("androidx.navigation:navigation-compose:2.4.2")
     implementation("androidx.navigation:navigation-compose:2.7.0")
-    implementation ("com.google.android.gms:play-services-maps:18.0.2")
+    implementation ("com.google.android.gms:play-services-maps:18.1.2")
     implementation ("com.google.maps.android:maps-compose:1.0.0" )// For Jetpack Compose integration with Maps
     implementation ("com.google.android.gms:play-services-maps:18.1.0")
     implementation ("com.google.maps.android:maps-compose:2.2.0")
@@ -99,5 +99,8 @@ dependencies {
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") // Verifique a versão mais recente
     implementation ("com.google.firebase:firebase-storage")
     implementation ("io.coil-kt:coil-compose:2.3.0")
-
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("com.google.android.material:material:1.10.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation ("androidx.core:core-ktx:1.12.0")
 }

@@ -35,7 +35,12 @@ fun AppNavigation() {
         composable("login") {
             LoginScreen(
                 onRegisterClick = { navController.navigate("register") },
-                onCraicClick = { navController.navigate("home") }
+                onCraicClick = {
+                    // Após login, remove as telas de registro e login do back stack
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -43,7 +48,12 @@ fun AppNavigation() {
         composable("register") {
             RegisterScreen(
                 onDismiss = { navController.popBackStack() }, // Voltar para a tela anterior
-                onRegisterSuccess = { navController.navigate("home") }
+                onRegisterSuccess = {
+                    // Após registro, vá para o login
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -59,9 +69,12 @@ fun AppNavigation() {
                 },
                 onSettingsClick = {
                     navController.navigate("settings") // Navega para a tela de configurações
-                }
+                },
+                navController = navController // Passa o navController aqui
             )
         }
+
+
 
         // Tela de Detalhes do Pub
         composable(

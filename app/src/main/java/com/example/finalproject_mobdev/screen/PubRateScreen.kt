@@ -44,9 +44,9 @@ fun PubRateScreen(
         var pubDetails by remember { mutableStateOf<Map<String, Any>?>(null) }
         var comments by remember { mutableStateOf<List<Map<String, String>>>(listOf()) }
         var newComment by remember { mutableStateOf("") }
-        var rate by remember { mutableStateOf(0) } // Default value is 0
+        var rate by remember { mutableStateOf(0) }
         var loading by remember { mutableStateOf(true) }
-        var errorMessage by remember { mutableStateOf<String?>(null) } // Error message for validation
+        var errorMessage by remember { mutableStateOf<String?>(null) }
         val coroutineScope = rememberCoroutineScope()
 
         // Fetch pub details and comments
@@ -147,10 +147,9 @@ fun PubRateScreen(
                             onValueChange = { newComment = it },
                             label = { Text("Add a comment") },
                             modifier = Modifier.fillMaxWidth(),
-                            isError = errorMessage != null && newComment.isBlank() // Show red outline if error
+                            isError = errorMessage != null && newComment.isBlank()
                         )
 
-                        // Error message for validation
                         if (errorMessage != null) {
                             Text(
                                 text = errorMessage ?: "",
@@ -162,13 +161,12 @@ fun PubRateScreen(
 
                         Button(
                             onClick = {
-                                // Validation logic
                                 if (rate == 0) {
                                     errorMessage = "Please select a CraicMeter rating!"
                                 } else if (newComment.isBlank()) {
                                     errorMessage = "Please enter a comment!"
                                 } else {
-                                    errorMessage = null // Clear any previous errors
+                                    errorMessage = null
                                     if (currentUid != null) {
                                         db.collection("pubs").document(pubId)
                                             .collection("comments")
@@ -187,7 +185,7 @@ fun PubRateScreen(
                                                     "commentId" to documentReference.id
                                                 )
                                                 newComment = ""
-                                                rate = 0 // Reset CraicMeter
+                                                rate = 0
 
                                                 coroutineScope.launch {
                                                     updateGlobalRating(db, pubId)
@@ -206,7 +204,7 @@ fun PubRateScreen(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         comments.forEach { comment ->
-                            val isUserComment = comment["userId"] == currentUid // Check if it's the user's comment
+                            val isUserComment = comment["userId"] == currentUid
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -311,6 +309,7 @@ suspend fun deleteComment(db: FirebaseFirestore, pubId: String, commentId: Strin
             .document(commentId)
             .delete()
             .await()
+        updateGlobalRating(db, pubId)
     } catch (e: Exception) {
         e.printStackTrace()
     }
@@ -329,6 +328,9 @@ suspend fun updateGlobalRating(db: FirebaseFirestore, pubId: String) {
             val averageRating = allRates.average()
             db.collection("pubs").document(pubId)
                 .update("averageRating", averageRating)
+        } else {
+            db.collection("pubs").document(pubId)
+                .update("averageRating", 0)
         }
     } catch (e: Exception) {
         e.printStackTrace()
