@@ -2,7 +2,10 @@
 
 package com.example.finalproject_mobdev.screen
 
+import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +25,8 @@ import com.example.finalproject_mobdev.R
 import com.example.finalproject_mobdev.ui.theme.Finalproject_MOBDEVTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import com.example.finalproject_mobdev.utils.openGoogleMaps
+import com.example.finalproject_mobdev.utils.getAddressFromLocation
 
 @Composable
 fun PubDetailsScreen(
@@ -29,23 +34,21 @@ fun PubDetailsScreen(
     onBack: () -> Unit,          // Callback to navigate back
     onNavigateToPubRate: () -> Unit // Callback to navigate to the PubRateScreen
 ) {
-    // States for Dark Mode, Firestore Data, and Loading State
     var isDarkMode by remember { mutableStateOf(false) }
     val db = FirebaseFirestore.getInstance()
     var pubDetails by remember { mutableStateOf<Map<String, Any>?>(null) }
     var comments by remember { mutableStateOf<List<Pair<String, Int>>>(listOf()) } // List of comments and ratings
     var loading by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     // Fetch data from Firestore when the screen is loaded
     LaunchedEffect(pubId) {
         loading = true
         try {
-            // Fetch pub details
             val pubSnapshot = db.collection("pubs").document(pubId).get().await()
             pubDetails = pubSnapshot.data
 
-            // Fetch user comments and ratings
             val commentSnapshot = db.collection("pubs").document(pubId).collection("comments").get().await()
             comments = commentSnapshot.documents.mapNotNull { doc ->
                 val comment = doc.getString("text") ?: return@mapNotNull null
@@ -64,7 +67,7 @@ fun PubDetailsScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(pubDetails?.get("name") as? String ?: "Pub Details") }, // Pub name dynamically fetched
+                    title = { Text(pubDetails?.get("name") as? String ?: "Pub Details") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -89,12 +92,8 @@ fun PubDetailsScreen(
                 contentAlignment = Alignment.TopStart
             ) {
                 when {
-                    loading -> {
-                        // Show a loading spinner while data is being fetched
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    }
+                    loading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     pubDetails == null -> {
-                        // Show error message if data fetch fails
                         Text(
                             text = "Failed to load pub details.",
                             style = MaterialTheme.typography.bodyLarge,
@@ -104,11 +103,10 @@ fun PubDetailsScreen(
                         )
                     }
                     else -> {
-                        // Display pub details and user comments
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .verticalScroll(scrollState) // Add vertical scroll
+                                .verticalScroll(scrollState)
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             horizontalAlignment = Alignment.Start
@@ -126,46 +124,66 @@ fun PubDetailsScreen(
                                 )
 
                                 FloatingActionButton(
-                                    onClick = onNavigateToPubRate, // Navigate to PubRateScreen
+                                    onClick = onNavigateToPubRate,
                                     containerColor = Color.Red,
                                     contentColor = Color.White,
-                                    modifier = Modifier
-                                        .size(80.dp) // Slightly larger button for prominence
-                                        .padding(8.dp), // Add some padding around the button
-                                    elevation = FloatingActionButtonDefaults.elevation(
-                                        defaultElevation = 8.dp, // Add subtle elevation
-                                        pressedElevation = 12.dp // More elevation when pressed
-                                    )
+                                    modifier = Modifier.size(80.dp)
                                 ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Text(
-                                            text = "Rate 🔥",
-                                            style = MaterialTheme.typography.labelLarge.copy(color = Color.White), // Custom text style
-                                            maxLines = 1
-                                        )
-                                    }
+                                    Text("Rate 🔥", style = MaterialTheme.typography.labelLarge)
                                 }
-
                             }
 
-                            // CraicMeter (Thermometer)
+                            // CraicMeter Display
                             val averageRate = (pubDetails?.get("averageRating") as? Double)?.toInt() ?: 0
                             CraicMeter(rate = averageRate)
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Pub Details
-                            Text(
-                                text = "Address: ${pubDetails?.get("Address") as? String ?: "No address available"}",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            // Pub Details with "Go to Pub" Button
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                // Exibe o endereço do pub
+                                Text(
+                                    text = "Address: ${pubDetails?.get("Address") as? String ?: "No address available"}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f) // Faz o texto ocupar o máximo de espaço horizontal possível
+                                )
+
+                                // Botão "Go to Pub"
+                                val context = LocalContext.current // Obtém o contexto antes de usar no botão
+                                Button(
+                                    onClick = {
+                                        // Obtém latitude e longitude do pub
+                                        val latitude = pubDetails?.get("latitude") as? Double
+                                        val longitude = pubDetails?.get("longitude") as? Double
+
+                                        // Verifica se as coordenadas estão disponíveis
+                                        if (latitude != null && longitude != null) {
+                                            openGoogleMaps(context, latitude, longitude) // Usa o contexto obtido acima
+                                        } else {
+                                            // Se não houver latitude ou longitude, exibe uma mensagem de erro no log
+                                            println("Erro: Latitude ou longitude não disponíveis para este pub.")
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4CAF50), // Cor verde do botão
+                                        contentColor = Color.White         // Cor do texto do botão
+                                    ),
+                                    modifier = Modifier.padding(start = 8.dp) // Adiciona um espaço entre o botão e o texto
+                                ) {
+                                    Text("Go to Pub") // Texto dentro do botão
+                                }
+                            }
+
+// Close Time
                             Text(
                                 text = "Close Time: ${pubDetails?.get("Close") as? String ?: "No close time available"}",
                                 style = MaterialTheme.typography.bodyLarge
                             )
+
+// Phone Number
                             Text(
                                 text = "Phone Number: ${pubDetails?.get("phone") as? String ?: "No phone number available"}",
                                 style = MaterialTheme.typography.bodyLarge
@@ -186,10 +204,7 @@ fun PubDetailsScreen(
                                     elevation = CardDefaults.cardElevation(4.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
-                                        Text(
-                                            text = comment,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
+                                        Text(text = comment, style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             text = "Rate: $userRate%",
                                             style = MaterialTheme.typography.bodySmall,
@@ -206,12 +221,12 @@ fun PubDetailsScreen(
     }
 }
 
+// CraicMeter Component
 @Composable
 fun CraicMeter(rate: Int) {
     val context = LocalContext.current
     var currentMediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
-    // Play sound based on the Craic level
     LaunchedEffect(rate) {
         currentMediaPlayer?.stop()
         currentMediaPlayer?.release()
@@ -223,11 +238,8 @@ fun CraicMeter(rate: Int) {
         currentMediaPlayer?.start()
     }
 
-    // Display the CraicMeter and global rating
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -247,3 +259,10 @@ fun CraicMeter(rate: Int) {
     }
 }
 
+// Helper function to open Google Maps
+fun openGoogleMaps(context: Context, latitude: Double, longitude: Double) {
+    val gmmIntentUri = Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude")
+    val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+    mapIntent.setPackage("com.google.android.apps.maps") // Ensures it opens Google Maps app
+    context.startActivity(mapIntent)
+}

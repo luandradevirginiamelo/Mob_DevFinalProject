@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,8 +46,10 @@ fun PubRateScreen(
         var newComment by remember { mutableStateOf("") }
         var rate by remember { mutableStateOf(0) }
         var loading by remember { mutableStateOf(true) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
         val coroutineScope = rememberCoroutineScope()
 
+        // Fetch pub details and comments
         LaunchedEffect(pubId) {
             loading = true
             try {
@@ -135,16 +138,73 @@ fun PubRateScreen(
 
                         CraicMeter(
                             pubId = pubId,
-                            initialRate = (pubDetails?.get("averageRating") as? Long)?.toInt() ?: 0,
+                            initialRate = rate,
                             onRateChange = { newRate -> rate = newRate }
                         )
+
+                        TextField(
+                            value = newComment,
+                            onValueChange = { newComment = it },
+                            label = { Text("Add a comment") },
+                            modifier = Modifier.fillMaxWidth(),
+                            isError = errorMessage != null && newComment.isBlank()
+                        )
+
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage ?: "",
+                                color = Color.Red,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (rate == 0) {
+                                    errorMessage = "Please select a CraicMeter rating!"
+                                } else if (newComment.isBlank()) {
+                                    errorMessage = "Please enter a comment!"
+                                } else {
+                                    errorMessage = null
+                                    if (currentUid != null) {
+                                        db.collection("pubs").document(pubId)
+                                            .collection("comments")
+                                            .add(
+                                                mapOf(
+                                                    "text" to newComment,
+                                                    "userId" to currentUid,
+                                                    "rate" to rate
+                                                )
+                                            )
+                                            .addOnSuccessListener { documentReference ->
+                                                comments = comments + mapOf(
+                                                    "text" to newComment,
+                                                    "userId" to currentUid,
+                                                    "rate" to rate.toString(),
+                                                    "commentId" to documentReference.id
+                                                )
+                                                newComment = ""
+                                                rate = 0
+
+                                                coroutineScope.launch {
+                                                    updateGlobalRating(db, pubId)
+                                                }
+                                            }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("Submit")
+                        }
 
                         Text(
                             text = "Comments:",
                             style = MaterialTheme.typography.headlineSmall
                         )
                         comments.forEach { comment ->
-                            val isUserComment = comment["userId"] == currentUid // Check if it's the logged user's comment
+                            val isUserComment = comment["userId"] == currentUid
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -162,8 +222,7 @@ fun PubRateScreen(
                                         color = Color.Gray
                                     )
                                     if (isUserComment) {
-                                        // Show delete button only for the comment's author
-                                        Button(
+                                        IconButton(
                                             onClick = {
                                                 val commentId = comment["commentId"]
                                                 if (commentId != null) {
@@ -177,56 +236,17 @@ fun PubRateScreen(
                                                     }
                                                 }
                                             },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color.Red,
-                                                contentColor = Color.White
-                                            ),
                                             modifier = Modifier.align(Alignment.End)
                                         ) {
-                                            Text("Delete your rating")
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete Comment",
+                                                tint = Color.Red
+                                            )
                                         }
                                     }
                                 }
                             }
-                        }
-
-                        TextField(
-                            value = newComment,
-                            onValueChange = { newComment = it },
-                            label = { Text("Add a comment") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Button(
-                            onClick = {
-                                if (newComment.isNotBlank() && currentUid != null) {
-                                    db.collection("pubs").document(pubId)
-                                        .collection("comments")
-                                        .add(
-                                            mapOf(
-                                                "text" to newComment,
-                                                "userId" to currentUid,
-                                                "rate" to rate
-                                            )
-                                        )
-                                        .addOnSuccessListener { documentReference ->
-                                            comments = comments + mapOf(
-                                                "text" to newComment,
-                                                "userId" to currentUid,
-                                                "rate" to rate.toString(),
-                                                "commentId" to documentReference.id
-                                            )
-                                            newComment = ""
-
-                                            coroutineScope.launch {
-                                                updateGlobalRating(db, pubId)
-                                            }
-                                        }
-                                }
-                            },
-                            modifier = Modifier.align(Alignment.End)
-                        ) {
-                            Text("Submit")
                         }
                     }
                 }
@@ -267,21 +287,8 @@ fun CraicMeter(pubId: String, initialRate: Int, onRateChange: (Int) -> Unit) {
         Slider(
             value = rate.toFloat(),
             onValueChange = { newRate ->
-                val oldRate = rate
                 rate = newRate.toInt()
                 onRateChange(rate)
-
-                if (getCraicRange(oldRate) != getCraicRange(rate)) {
-                    currentMediaPlayer?.stop()
-                    currentMediaPlayer?.release()
-
-                    currentMediaPlayer = when {
-                        rate > 60 -> MediaPlayer.create(context, R.raw.oy)
-                        rate in 40..59 -> MediaPlayer.create(context, R.raw.snoring)
-                        else -> MediaPlayer.create(context, R.raw.cricket)
-                    }
-                    currentMediaPlayer?.start()
-                }
             },
             valueRange = 0f..100f,
             colors = SliderDefaults.colors(
@@ -294,14 +301,6 @@ fun CraicMeter(pubId: String, initialRate: Int, onRateChange: (Int) -> Unit) {
     }
 }
 
-fun getCraicRange(rate: Int): String {
-    return when {
-        rate > 60 -> "HIGH"
-        rate in 40..59 -> "MEDIUM"
-        else -> "LOW"
-    }
-}
-
 suspend fun deleteComment(db: FirebaseFirestore, pubId: String, commentId: String) {
     try {
         db.collection("pubs")
@@ -310,6 +309,7 @@ suspend fun deleteComment(db: FirebaseFirestore, pubId: String, commentId: Strin
             .document(commentId)
             .delete()
             .await()
+        updateGlobalRating(db, pubId)
     } catch (e: Exception) {
         e.printStackTrace()
     }
@@ -328,6 +328,9 @@ suspend fun updateGlobalRating(db: FirebaseFirestore, pubId: String) {
             val averageRating = allRates.average()
             db.collection("pubs").document(pubId)
                 .update("averageRating", averageRating)
+        } else {
+            db.collection("pubs").document(pubId)
+                .update("averageRating", 0)
         }
     } catch (e: Exception) {
         e.printStackTrace()
