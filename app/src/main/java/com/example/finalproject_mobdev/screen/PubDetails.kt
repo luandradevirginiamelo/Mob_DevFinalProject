@@ -164,7 +164,7 @@ fun PubDetailsScreen(
                                             openGoogleMaps(context, latitude, longitude) // Usa o contexto obtido acima
                                         } else {
                                             // Se não houver latitude ou longitude, exibe uma mensagem de erro no log
-                                            println("Erro: Latitude ou longitude não disponíveis para este pub.")
+                                            println("Error: Latitude and Longitude not available for this PUB.")
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
