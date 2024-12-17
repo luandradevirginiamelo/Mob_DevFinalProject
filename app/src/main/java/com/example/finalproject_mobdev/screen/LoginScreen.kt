@@ -27,6 +27,7 @@ import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.firebase.auth.FirebaseAuth
+import android.content.Context
 
 @Composable
 fun LoginScreen(
@@ -34,16 +35,35 @@ fun LoginScreen(
     onCraicClick: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     // States for input fields
     var username by remember { mutableStateOf(TextFieldValue()) }
     var password by remember { mutableStateOf(TextFieldValue()) }
     var passwordVisible by remember { mutableStateOf(false) }
+    var keepMeLoggedIn by remember { mutableStateOf(false) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
     // Snackbar state
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
+
+
+    LaunchedEffect(Unit) {
+        val keepMeLoggedIn = sharedPreferences.getBoolean("keep_me_logged_in", false)
+
+
+        if (auth.currentUser != null) {
+            if (!keepMeLoggedIn) {
+                // Se a opção não estiver selecionada, faz logout
+                auth.signOut()
+            } else {
+                // Navega para Home se "Keep Me Logged In" estiver selecionado
+                onCraicClick()
+            }
+        }
+    }
 
     // Trigger Snackbar when a message is set
     LaunchedEffect(snackbarMessage) {
@@ -110,14 +130,30 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Log In button
+                    // Checkbox "Keep Me Logged In"
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = keepMeLoggedIn,
+                            onCheckedChange = { isChecked ->
+                                keepMeLoggedIn = isChecked
+                                sharedPreferences.edit().putBoolean("keep_me_logged_in", isChecked).apply()
+                            }
+                        )
+                        Text("Keep Me Logged In", color = Color.White)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = {
                             if (username.text.isNotEmpty() && password.text.isNotEmpty()) {
                                 auth.signInWithEmailAndPassword(username.text, password.text)
                                     .addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
-                                            onCraicClick() // Navigate to the HomeScreen
+                                            onCraicClick() // Navega para a HomeScreen
                                         } else {
                                             snackbarMessage = "Login failed: ${task.exception?.message}"
                                         }
@@ -133,7 +169,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Sign Up button
                     Button(
                         onClick = onRegisterClick,
                         modifier = Modifier.fillMaxWidth()
@@ -143,7 +178,6 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Forgot Password button
                     Button(
                         onClick = { showForgotPasswordDialog = true },
                         modifier = Modifier.fillMaxWidth()
@@ -153,7 +187,6 @@ fun LoginScreen(
                 }
             }
 
-            // Display the "Forgot Password" dialog if needed
             if (showForgotPasswordDialog) {
                 ForgotPasswordDialog(
                     onDismiss = { showForgotPasswordDialog = false },

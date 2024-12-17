@@ -193,7 +193,12 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { coroutineScope.launch { onLogout() } },
+                onClick = {
+                    FirebaseAuth.getInstance().signOut() // Desloga o usuário do Firebase
+                    navController.navigate("login") {    // Navega para a tela de login
+                        popUpTo("home") { inclusive = true } // Remove HomeScreen da pilha de navegação
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Red,
                     contentColor = Color.White
