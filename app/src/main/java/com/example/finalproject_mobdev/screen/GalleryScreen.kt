@@ -32,21 +32,21 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
     val context = LocalContext.current
     val firebaseStorage = FirebaseStorage.getInstance()
 
-    // Estados
+    // states
     var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var imageUriToUpload by remember { mutableStateOf<Uri?>(null) }
     var uploadStatus by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Carregar imagens ao iniciar a tela
+    // upload image into screen
     LaunchedEffect(Unit) {
         isLoading = true
         imageUris = loadImages(pubId, firebaseStorage)
         isLoading = false
     }
 
-    // Launcher para escolher imagem da galeria
+    // Launcher to choose image from gallery
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
@@ -54,7 +54,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
         }
     )
 
-    // Scaffold com estrutura da tela
+    // Scaffold with structure from the screen
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,7 +74,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Botão para escolher imagem
+            // Button to choose an image
             Button(
                 onClick = { imagePickerLauncher.launch("image/*") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Blue, contentColor = Color.White),
@@ -87,7 +87,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Exibir pré-visualização da imagem selecionada
+            // show pre-visualization
             imageUriToUpload?.let { uri ->
                 Image(
                     painter = rememberAsyncImagePainter(model = uri),
@@ -100,17 +100,17 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val coroutineScope = rememberCoroutineScope() // Define o CoroutineScope fora do botão
+                val coroutineScope = rememberCoroutineScope() // Define the CoroutineScope out of the button
 
                 Button(
                     onClick = {
-                        imageUriToUpload?.let { uri -> // Verifica se o URI não é nulo
+                        imageUriToUpload?.let { uri -> // Verify if url ins null
                             coroutineScope.launch {
                                 isLoading = true
                                 uploadPhotoToFirebaseStorage(context, pubId, uri) { status ->
                                     uploadStatus = status
                                 }
-                                // Recarregar imagens após upload
+                                // Reload images after upload
                                 imageUris = loadImages(pubId, firebaseStorage)
                                 isLoading = false
                             }
@@ -126,7 +126,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Exibir status do upload
+            // View upload status
             uploadStatus?.let { status ->
                 Text(
                     text = status,
@@ -137,11 +137,11 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Indicador de carregamento inicial
+            // Initial charging indicator
             if (isLoading) {
                 CircularProgressIndicator()
             } else {
-                // Lista de imagens carregadas
+                // List of uploaded images
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -163,7 +163,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 }
 
 /**
- * Função para carregar imagens do Firebase Storage.
+ * Function to load images from Firebase Storage.
  */
 private suspend fun loadImages(pubId: String, firebaseStorage: FirebaseStorage): List<Uri> {
     return try {
@@ -177,7 +177,7 @@ private suspend fun loadImages(pubId: String, firebaseStorage: FirebaseStorage):
 }
 
 /**
- * Função para fazer upload da imagem ao Firebase Storage.
+ * Function to upload images from Firebase Storage.
  */
 private suspend fun uploadPhotoToFirebaseStorage(
     context: Context,

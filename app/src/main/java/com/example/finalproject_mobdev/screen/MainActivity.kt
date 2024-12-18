@@ -107,14 +107,7 @@ fun AppNavigation() {
             )
         }
 
-        // Tela de Upload de Fotos
-        composable("photo_upload") {
-            PhotoUploadScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // Tela de Galeria (GalleryScreen)
+               // Tela de Galeria (GalleryScreen)
         composable(
             route = "galleryScreen/{pubId}",
             arguments = listOf(navArgument("pubId") { type = NavType.StringType })

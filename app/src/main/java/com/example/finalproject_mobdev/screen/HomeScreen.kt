@@ -45,11 +45,12 @@ fun HomeScreen(
     onSettingsClick: () -> Unit,
     navController: NavController
 ) {
-
+    // State variables to observe changes in location, message, and pub list
     val locationText by homeViewModel.locationText.collectAsState()
     val messageText by homeViewModel.messageText.collectAsState()
     val pubsList by homeViewModel.pubsList.collectAsState()
 
+    // Retrieve the current context for location services
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -57,6 +58,7 @@ fun HomeScreen(
     val db = FirebaseFirestore.getInstance()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // State for location permissions
     val locationPermissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -67,27 +69,29 @@ fun HomeScreen(
     var showPermissionErrorDialog by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-
+    // Effect to fetch user information when authentication state changes
     LaunchedEffect(auth.currentUser?.uid) {
         val uid = auth.currentUser?.uid
         if (uid != null) {
             db.collection("user").document(uid).get()
                 .addOnSuccessListener { document ->
+                    // Retrieve the user's name from Firestore
                     userName = document.getString("nameandsurname")
                 }
                 .addOnFailureListener {
+                    // Default to "Guest" if retrieval fails
                     userName = "Guest"
                 }
         }
     }
-
+    // Launching an effect to check for location permissions when the composable enters the composition
     LaunchedEffect(Unit) {
         if (!locationPermissionsState.allPermissionsGranted) {
             locationPermissionsState.launchMultiplePermissionRequest()
         }
     }
 
-    // Observe the flag "shouldRefresh" from PubDetailsScreen
+
     val shouldRefresh = navController.currentBackStackEntry?.savedStateHandle
         ?.getLiveData<Boolean>("shouldRefresh")
 
@@ -126,6 +130,7 @@ fun HomeScreen(
                         }
                     }
                 )
+                // Show a permission error dialog if location permissions are not granted
             } else {
                 showPermissionErrorDialog = true
             }
@@ -172,8 +177,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onProfileClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C), // Roxo escuro
-                    contentColor = Color.White          // Texto branco
+                    containerColor = Color(0xFF4A148C),
+                    contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -184,8 +189,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onSettingsClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C), // Roxo escuro
-                    contentColor = Color.White          // Texto branco
+                    containerColor = Color(0xFF4A148C),
+                    contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -195,14 +200,14 @@ fun HomeScreen(
 
             Button(
                 onClick = {
-                    FirebaseAuth.getInstance().signOut() // Desloga o usuário do Firebase
-                    navController.navigate("login") {    // Navega para a tela de login
-                        popUpTo("home") { inclusive = true } // Remove HomeScreen da pilha de navegação
+                    FirebaseAuth.getInstance().signOut() // logout user from firebase
+                    navController.navigate("login") {    // go to login screen
+                        popUpTo("home") { inclusive = true } // Remove HomeScreen from navigation
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C), // Roxo escuro
-                    contentColor = Color.White          // Texto branco
+                    containerColor = Color(0xFF4A148C),
+                    contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -211,13 +216,16 @@ fun HomeScreen(
         }
     }
 
+    // Modal navigation drawer with drawer content and drawer state
     ModalNavigationDrawer(
         drawerContent = drawerContent,
         drawerState = drawerState
     ) {
+        // Main scaffold containing the top bar and snackbar host
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
+                // Top app bar with a menu icon to open the drawer
                 TopAppBar(
                     title = { Text("Home") },
                     navigationIcon = {
@@ -234,16 +242,29 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 24.dp) // Padding ajustado
             ) {
+                // Exibe a mensagem de boas-vindas dentro de um Card, se o userName não for nulo
                 userName?.let { name ->
-                    Text(
-                        text = "Welcome to Limerick, $name! See below where the best Craic is now.",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
-                    )
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp), // Espaçamento acima e abaixo do Card
+                        elevation = CardDefaults.cardElevation(8.dp), // Elevação para destaque
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFEDE7F6) // Cor de fundo suave
+                        )
+                    ) {
+                        Text(
+                            text = "Welcome to Limerick, $name! See below where the best Craic is now.",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier
+                                .padding(16.dp) // Padding interno do Card
+                                .align(Alignment.CenterHorizontally) // Centraliza o texto horizontalmente
+                        )
+                    }
                 }
-
+                // Button to manually update the list of pubs
                 Button(
                     onClick = {
                         if (locationPermissionsState.allPermissionsGranted) {
@@ -286,7 +307,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    Text("Click to update the Craic :)")
+                    Text("Click to update the List")
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -299,7 +320,7 @@ fun HomeScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .fillMaxWidth() // Garante que o Row ocupe toda a largura
+                                .fillMaxWidth() // Row
                                 .padding(8.dp)
                         ) {
                             // Ícone de localização
@@ -312,7 +333,7 @@ fun HomeScreen(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // Texto com a localização
+                            // Text Location
                             Text(
                                 text = locationText,
                                 style = MaterialTheme.typography.bodyLarge
@@ -368,7 +389,7 @@ fun HomeScreen(
                                         verticalArrangement = Arrangement.Center
                                     ) {
                                         Text("⭐️", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Estrela centralizada
-                                        Text("Detalhes", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Palavra abaixo
+                                        Text("Details", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Palavra abaixo
                                     }
                                 }
                             }
