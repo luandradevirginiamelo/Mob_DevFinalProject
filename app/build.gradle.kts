@@ -97,10 +97,11 @@ dependencies {
     implementation ("androidx.compose.material3:material3:1.2.0-alpha02")
     implementation ("androidx.compose.animation:animation:1.4.3")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") // Verifique a versão mais recente
-    implementation ("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-storage:20.2.1")
     implementation ("io.coil-kt:coil-compose:2.3.0")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation ("androidx.core:core-ktx:1.12.0")
+
 }

@@ -45,6 +45,7 @@ fun HomeScreen(
     onSettingsClick: () -> Unit,
     navController: NavController
 ) {
+
     val locationText by homeViewModel.locationText.collectAsState()
     val messageText by homeViewModel.messageText.collectAsState()
     val pubsList by homeViewModel.pubsList.collectAsState()
@@ -156,7 +157,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (isDarkMode) Color.DarkGray else Color.Black)
+                .background(Color(0xFFD1C4E9))
                 .padding(16.dp)
         ) {
             Spacer(modifier = Modifier.height(40.dp))
@@ -171,8 +172,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onProfileClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray,
-                    contentColor = Color.White
+                    containerColor = Color(0xFF4A148C), // Roxo escuro
+                    contentColor = Color.White          // Texto branco
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -183,8 +184,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onSettingsClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray,
-                    contentColor = Color.White
+                    containerColor = Color(0xFF4A148C), // Roxo escuro
+                    contentColor = Color.White          // Texto branco
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -200,8 +201,8 @@ fun HomeScreen(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Red,
-                    contentColor = Color.White
+                    containerColor = Color(0xFF4A148C), // Roxo escuro
+                    contentColor = Color.White          // Texto branco
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -285,7 +286,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    Text("Click to update your location")
+                    Text("Click to update the Craic :)")
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -358,11 +359,17 @@ fun HomeScreen(
 
                                 FloatingActionButton(
                                     onClick = { onNavigateToPubDetails(pubId) },
-                                    modifier = Modifier.size(65.dp),
-                                    containerColor = Color.Red,
+                                    modifier = Modifier.size(63.dp),
+                                    containerColor = Color(0xFF6A1B9A), // Cor roxa escura
                                     contentColor = Color.White
                                 ) {
-                                    Text("🔥Details")
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text("⭐️", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Estrela centralizada
+                                        Text("Detalhes", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Palavra abaixo
+                                    }
                                 }
                             }
                         }

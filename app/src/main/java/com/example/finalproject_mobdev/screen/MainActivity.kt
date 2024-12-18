@@ -36,7 +36,6 @@ fun AppNavigation() {
             LoginScreen(
                 onRegisterClick = { navController.navigate("register") },
                 onCraicClick = {
-                    // Após login, remove as telas de registro e login do back stack
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                     }
@@ -46,83 +45,101 @@ fun AppNavigation() {
 
         // Tela de Registro
         composable("register") {
-            RegisterScreen(
-                onDismiss = { navController.popBackStack() }, // Voltar para a tela anterior
-                onRegisterSuccess = {
-                    // Após registro, vá para o login
-                    navController.navigate("login") {
-                        popUpTo("register") { inclusive = true }
-                    }
-                }
-            )
+            Finalproject_MOBDEVTheme {
+                RegisterScreen(
+                    onDismiss = { navController.popBackStack() },
+                    onRegisterSuccess = { navController.navigate("login") }
+                )
+            }
         }
 
         // Tela Principal (Home)
         composable("home") {
-            HomeScreen(
-                onLogout = { navController.navigate("login") { popUpTo(0) } },
-                onNavigateToPubDetails = { pubId ->
-                    navController.navigate("pubDetails/$pubId") // Navega para a tela de detalhes de pubs
-                },
-                onProfileClick = {
-                    navController.navigate("profile") // Navega para a tela de perfil
-                },
-                onSettingsClick = {
-                    navController.navigate("settings") // Navega para a tela de configurações
-                },
-                navController = navController // Passa o navController aqui
-            )
+            Finalproject_MOBDEVTheme {
+                HomeScreen(
+                    onLogout = {
+                        navController.navigate("login") {
+                            popUpTo(0)
+                        }
+                    },
+                    onNavigateToPubDetails = { pubId ->
+                        navController.navigate("pubDetails/$pubId")
+                    },
+                    onProfileClick = {
+                        navController.navigate("profile")
+                    },
+                    onSettingsClick = {
+                        navController.navigate("settings")
+                    },
+                    navController = navController
+                )
+            }
         }
-
-
 
         // Tela de Detalhes do Pub
         composable(
             route = "pubDetails/{pubId}",
-            arguments = listOf(navArgument("pubId") { type = NavType.StringType }) // Argumento: pubId
+            arguments = listOf(navArgument("pubId") { type = NavType.StringType })
         ) { backStackEntry ->
             val pubId = backStackEntry.arguments?.getString("pubId") ?: ""
             PubDetailsScreen(
                 pubId = pubId,
                 onBack = { navController.popBackStack() },
                 onNavigateToPubRate = {
-                    navController.navigate("pubRate/$pubId") // Navega para a tela de avaliação do pub
+                    navController.navigate("pubRate/$pubId")
+                },
+                onNavigateToGallery = {
+                    navController.navigate("galleryScreen/$pubId") // Navega para a tela de Gallery Pictures
                 }
             )
         }
 
-        // Tela de Avaliação do Pub (PubRateScreen)
+        // Tela de Avaliação do Pub
         composable(
             route = "pubRate/{pubId}",
-            arguments = listOf(navArgument("pubId") { type = NavType.StringType }) // Argumento: pubId
+            arguments = listOf(navArgument("pubId") { type = NavType.StringType })
         ) { backStackEntry ->
             val pubId = backStackEntry.arguments?.getString("pubId") ?: ""
             PubRateScreen(
                 pubId = pubId,
-                navController = navController, // Passa o NavHostController aqui
+                navController = navController,
                 onBack = { navController.popBackStack() }
             )
         }
 
-        // Tela de Upload de Fotos (PhotoUploadScreen)
-        composable("photo_upload") { // Rota para a tela de upload de fotos
+        // Tela de Upload de Fotos
+        composable("photo_upload") {
             PhotoUploadScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // Tela de Galeria (GalleryScreen)
+        composable(
+            route = "galleryScreen/{pubId}",
+            arguments = listOf(navArgument("pubId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val pubId = backStackEntry.arguments?.getString("pubId") ?: ""
+            GalleryScreen(
+                pubId = pubId,
                 onBack = { navController.popBackStack() } // Volta para a tela anterior
             )
         }
 
-        // Tela de Perfil
         composable("profile") {
             ProfileScreen(
-                onBack = { navController.popBackStack() } // Volta para a tela anterior
+                onBack = { navController.popBackStack() },
+                onEditProfile = { /* TODO: Adicione lógica para editar o perfil */ },
+                onLogout = { /* TODO: Adicione lógica para logout */ }
             )
         }
 
         // Tela de Configurações
         composable("settings") {
             SettingsScreen(
-                onBack = { navController.popBackStack() } // Volta para a tela anterior
+                onBack = { navController.popBackStack() }
             )
         }
     }
 }
+
