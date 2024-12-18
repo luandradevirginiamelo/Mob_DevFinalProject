@@ -6,15 +6,41 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,16 +49,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.finalproject_mobdev.R
 import com.example.finalproject_mobdev.ui.theme.Finalproject_MOBDEVTheme
+import com.example.finalproject_mobdev.utils.openGoogleMaps
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import com.example.finalproject_mobdev.utils.openGoogleMaps
-import com.example.finalproject_mobdev.utils.getAddressFromLocation
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PubDetailsScreen(
     pubId: String,               // Pub ID to fetch details from Firestore
     onBack: () -> Unit,          // Callback to navigate back
-    onNavigateToPubRate: () -> Unit // Callback to navigate to the PubRateScreen
+    onNavigateToPubRate: () -> Unit, // Callback to navigate to the PubRateScreen
+    onNavigateToGallery: () -> Unit // Callback to navigate to the GalleryScreen
 ) {
     var isDarkMode by remember { mutableStateOf(false) }
     val db = FirebaseFirestore.getInstance()
@@ -108,86 +136,107 @@ fun PubDetailsScreen(
                                 .fillMaxWidth()
                                 .verticalScroll(scrollState)
                                 .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalAlignment = Alignment.Start
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally // Centraliza tudo na horizontal
                         ) {
-                            // CraicMeter Title with Rate Button
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "CraicMeter",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = Color.Blue,
-                                    modifier = Modifier.weight(1f)
-                                )
-
+                                // Botão "Rate 🔥"
                                 FloatingActionButton(
                                     onClick = onNavigateToPubRate,
+                                    modifier = Modifier.size(65.dp),
                                     containerColor = Color.Red,
-                                    contentColor = Color.White,
-                                    modifier = Modifier.size(80.dp)
+                                    contentColor = Color.White
                                 ) {
-                                    Text("Rate 🔥", style = MaterialTheme.typography.labelLarge)
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text("🔥", style = MaterialTheme.typography.bodyLarge) // Emoji
+                                        Text("Rate", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+
+                                // Botão "Go to Pub 📍"
+                                FloatingActionButton(
+                                    onClick = {
+                                        val latitude = pubDetails?.get("latitude") as? Double
+                                        val longitude = pubDetails?.get("longitude") as? Double
+                                        if (latitude != null && longitude != null) {
+                                            openGoogleMaps(context, latitude, longitude)
+                                        }
+                                    },
+                                    modifier = Modifier.size(65.dp),
+                                    containerColor = Color(0xFF4CAF50), // Cor verde
+                                    contentColor = Color.White
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text("📍", style = MaterialTheme.typography.bodyLarge) // Emoji
+                                        Text("Pub", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+
+                                // Botão "Gallery 📷"
+                                FloatingActionButton(
+                                    onClick = onNavigateToGallery,
+                                    modifier = Modifier.size(65.dp),
+                                    containerColor = Color(0xFF6A1B9A), // Cor roxa
+                                    contentColor = Color.White
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text("📷", style = MaterialTheme.typography.bodyLarge) // Emoji
+                                        Text("Gallery", style = MaterialTheme.typography.labelSmall)
+                                    }
+
                                 }
                             }
 
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             // CraicMeter Display
-                            val averageRate = (pubDetails?.get("averageRating") as? Double)?.toInt() ?: 0
+                            val averageRate =
+                                (pubDetails?.get("averageRating") as? Double)?.toInt() ?: 0
                             CraicMeter(rate = averageRate)
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Pub Details with "Go to Pub" Button
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                            // Container for Pub Details
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                elevation = CardDefaults.cardElevation(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                             ) {
-                                // Exibe o endereço do pub
-                                Text(
-                                    text = "Address: ${pubDetails?.get("Address") as? String ?: "No address available"}",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.weight(1f) // Faz o texto ocupar o máximo de espaço horizontal possível
-                                )
-
-                                // Botão "Go to Pub"
-                                val context = LocalContext.current // Obtém o contexto antes de usar no botão
-                                Button(
-                                    onClick = {
-                                        // Obtém latitude e longitude do pub
-                                        val latitude = pubDetails?.get("latitude") as? Double
-                                        val longitude = pubDetails?.get("longitude") as? Double
-
-                                        // Verifica se as coordenadas estão disponíveis
-                                        if (latitude != null && longitude != null) {
-                                            openGoogleMaps(context, latitude, longitude) // Usa o contexto obtido acima
-                                        } else {
-                                            // Se não houver latitude ou longitude, exibe uma mensagem de erro no log
-                                            println("Error: Latitude and Longitude not available for this PUB.")
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF4CAF50), // Cor verde do botão
-                                        contentColor = Color.White         // Cor do texto do botão
-                                    ),
-                                    modifier = Modifier.padding(start = 8.dp) // Adiciona um espaço entre o botão e o texto
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text("Go to Pub") // Texto dentro do botão
+                                    Text(
+                                        text = "Address: ${pubDetails?.get("Address") as? String ?: "No address available"}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "Close Time: ${pubDetails?.get("Close") as? String ?: "No close time available"}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "Phone Number: ${pubDetails?.get("phone") as? String ?: "No phone number available"}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
                                 }
                             }
-
-// Close Time
-                            Text(
-                                text = "Close Time: ${pubDetails?.get("Close") as? String ?: "No close time available"}",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-
-// Phone Number
-                            Text(
-                                text = "Phone Number: ${pubDetails?.get("phone") as? String ?: "No phone number available"}",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
 
                             Spacer(modifier = Modifier.height(16.dp))
 
@@ -261,8 +310,8 @@ fun CraicMeter(rate: Int) {
 
 // Helper function to open Google Maps
 fun openGoogleMaps(context: Context, latitude: Double, longitude: Double) {
-    val gmmIntentUri = Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude")
+    val gmmIntentUri = Uri.parse("google.navigation:q=$latitude,$longitude&mode=d")
     val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-    mapIntent.setPackage("com.google.android.apps.maps") // Ensures it opens Google Maps app
+    mapIntent.setPackage("com.google.android.apps.maps")
     context.startActivity(mapIntent)
 }
