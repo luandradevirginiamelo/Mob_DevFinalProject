@@ -162,7 +162,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFD1C4E9))
+                .background(Color.Black)
                 .padding(16.dp)
         ) {
             Spacer(modifier = Modifier.height(40.dp))
@@ -177,8 +177,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onProfileClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C),
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -189,8 +189,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onSettingsClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C),
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -206,8 +206,8 @@ fun HomeScreen(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C),
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -242,17 +242,17 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 16.dp, vertical = 24.dp) // Padding ajustado
+                    .padding(horizontal = 16.dp, vertical = 24.dp) // Adjusted padding
             ) {
-                // Exibe a mensagem de boas-vindas dentro de um Card, se o userName não for nulo
+                // Display the welcome message inside a Card, if the userName is not null
                 userName?.let { name ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp), // Espaçamento acima e abaixo do Card
-                        elevation = CardDefaults.cardElevation(8.dp), // Elevação para destaque
+                            .padding(vertical = 16.dp), // Spacing above and below the Card
+                        elevation = CardDefaults.cardElevation(8.dp), // Elevation to highlight
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFEDE7F6) // Cor de fundo suave
+                            containerColor = Color(0xFFEDE7F6)// Soft background color
                         )
                     ) {
                         Text(
@@ -260,7 +260,7 @@ fun HomeScreen(
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier
                                 .padding(16.dp) // Padding interno do Card
-                                .align(Alignment.CenterHorizontally) // Centraliza o texto horizontalmente
+                                .align(Alignment.CenterHorizontally) // Center text horizontally
                         )
                     }
                 }
@@ -316,7 +316,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     item {
-                        // Linha com o ícone de localização, texto e botão "Maps"
+                        // Line with location icon, text and "Maps" button
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -339,12 +339,12 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.bodyLarge
                             )
 
-                            Spacer(modifier = Modifier.weight(1f)) // Empurra o botão "Maps" para o lado direito
+                            Spacer(modifier = Modifier.weight(1f)) // Push the "Maps" button to the right
 
 
                         }
 
-                        // Exibe a mensagem caso exista algum texto em `messageText`
+                        // Display the message if there is any text in `messageText`
                         if (messageText.isNotEmpty()) {
                             Text(
                                 text = messageText,
@@ -354,7 +354,7 @@ fun HomeScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp)) // Espaçamento adicional
+                        Spacer(modifier = Modifier.height(16.dp)) // Additional spacing
                     }
 
 
@@ -388,8 +388,8 @@ fun HomeScreen(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("⭐️", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Estrela centralizada
-                                        Text("Details", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Palavra abaixo
+                                        Text("⭐️", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Centered star
+                                        Text("Details", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Text below
                                     }
                                 }
                             }
@@ -450,27 +450,42 @@ fun getCurrentLocation(
 
 // Helper function: Check if GPS is enabled
 fun checkIfGpsIsEnabled(
-    context: Context,
-    onGpsEnabled: () -> Unit,
-    onGpsError: (String) -> Unit
+    context: Context,                     // Context of the activity
+    onGpsEnabled: () -> Unit,             // Callback to execute if GPS is enabled
+    onGpsError: (String) -> Unit          // Callback to execute if there is an error with GPS
 ) {
+    //  the context to an Activity, return if it's not an Activity
     val activity = context as? Activity ?: return
+
+    // Create a LocationRequest with high accuracy priority
     val locationRequest = LocationRequest.create().apply {
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
+
+    // Build a LocationSettingsRequest with the location request
     val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+
+    // Get the SettingsClient to check the device's location settings
     val settingsClient = LocationServices.getSettingsClient(context)
+
+    // Check the location settings using the builder's configuration
     val task = settingsClient.checkLocationSettings(builder.build())
 
+    // If the location settings are correct, call the onGpsEnabled callback
     task.addOnSuccessListener { onGpsEnabled() }
+
+    // Handle the case where the location settings are not satisfied
     task.addOnFailureListener { exception ->
         if (exception is ResolvableApiException) {
+            // If the issue can be resolved, try to prompt the user to enable GPS
             try {
                 exception.startResolutionForResult(activity, 1001)
             } catch (_: IntentSender.SendIntentException) {
+                // Handle the case where starting the resolution fails
                 onGpsError("Oops! It's not possible to see where the Craic is without your location.")
             }
         } else {
+            // If the issue is not resolvable, call the onGpsError callback with a message
             onGpsError("Oops! It's not possible to see where the Craic is without your location.")
         }
     }
