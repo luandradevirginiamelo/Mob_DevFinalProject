@@ -36,6 +36,7 @@ import com.example.finalproject_mobdev.utils.openGoogleMaps
 import com.example.finalproject_mobdev.utils.getAddressFromLocation
 
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = viewModel(),
