@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen(
     onBack: () -> Unit
 ) {
-    // Estados para os componentes
+    // Components States
     var isDarkMode by remember { mutableStateOf(false) }
     var notificationsEnabled by remember { mutableStateOf(true) }
     val languages = listOf("English", "Português", "Español", "Français")
@@ -42,7 +42,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            // Título da seção
+            // Section title
             Text(
                 text = "Preferences",
                 style = MaterialTheme.typography.headlineMedium,

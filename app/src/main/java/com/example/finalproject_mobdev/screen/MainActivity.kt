@@ -29,7 +29,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = "login" // Define a tela inicial como Login
+        startDestination = "login" // Define the inicial screen - Login
     ) {
         // The Login screen route
         composable("login") {
@@ -89,7 +89,7 @@ fun AppNavigation() {
                     navController.navigate("pubRate/$pubId")
                 },
                 onNavigateToGallery = {
-                    navController.navigate("galleryScreen/$pubId") // Navega para a tela de Gallery Pictures
+                    navController.navigate("galleryScreen/$pubId") // GO TO  Gallery Pics
                 }
             )
         }

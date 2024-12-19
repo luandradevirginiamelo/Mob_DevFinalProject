@@ -37,19 +37,30 @@ fun PubRateScreen(
     var isDarkMode by remember { mutableStateOf(false) }
 
     Finalproject_MOBDEVTheme(darkTheme = isDarkMode) {
+        // Get an instance of the Firebase Firestore database
         val db = FirebaseFirestore.getInstance()
+        // Get an instance of Firebase Authentication
         val auth = FirebaseAuth.getInstance()
+        // Retrieve the UID (User ID) of the currently logged-in user
         val currentUid = auth.currentUser?.uid
 
+        // State to hold the details of a publication, initialized as null
         var pubDetails by remember { mutableStateOf<Map<String, Any>?>(null) }
+        // State to hold the list of comments, initialized as an empty list
         var comments by remember { mutableStateOf<List<Map<String, String>>>(listOf()) }
+        // State to hold the new comment text, initialized as an empty string
         var newComment by remember { mutableStateOf("") }
+        // State to hold the rating value, initialized to 0
         var rate by remember { mutableStateOf(0) }
+        // State to manage the loading state, initialized as true (loading)
         var loading by remember { mutableStateOf(true) }
+        // State to store error messages, initialized as null
         var errorMessage by remember { mutableStateOf<String?>(null) }
+        // A coroutine scope to handle asynchronous tasks within the composable
         val coroutineScope = rememberCoroutineScope()
 
-        // Fetch pub details and comments
+
+    // Fetch pub details and comments
         LaunchedEffect(pubId) {
             loading = true
             try {
@@ -158,7 +169,7 @@ fun PubRateScreen(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
-
+                        // fIELD for comments
                         Button(
                             onClick = {
                                 if (rate == 0) {
@@ -254,7 +265,7 @@ fun PubRateScreen(
         }
     }
 }
-
+// Field for my Craicmeter
 @Composable
 fun CraicMeter(pubId: String, initialRate: Int, onRateChange: (Int) -> Unit) {
     var rate by remember { mutableStateOf(initialRate) }
@@ -300,7 +311,7 @@ fun CraicMeter(pubId: String, initialRate: Int, onRateChange: (Int) -> Unit) {
         )
     }
 }
-
+//commenting field
 suspend fun deleteComment(db: FirebaseFirestore, pubId: String, commentId: String) {
     try {
         db.collection("pubs")
@@ -314,7 +325,7 @@ suspend fun deleteComment(db: FirebaseFirestore, pubId: String, commentId: Strin
         e.printStackTrace()
     }
 }
-
+//THE MOST CHALLENGE PART WAS FIX THE GLOBAL AVERAGE FOR ALL PUBS FROM EACH TO EACH PUB
 suspend fun updateGlobalRating(db: FirebaseFirestore, pubId: String) {
     try {
         val commentDocs = db.collection("pubs").document(pubId)
