@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.finalproject_mobdev.R
+import com.example.finalproject_mobdev.ui.theme.Finalproject_MOBDEVTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -49,7 +50,7 @@ fun RegisterScreen(onDismiss: () -> Unit, onRegisterSuccess: () -> Unit) {
             showSnackbarMessage = null // Clear message after showing
         }
     }
-
+    Finalproject_MOBDEVTheme{
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) } // Attach the snackbar to the Scaffold
     ) { padding ->
@@ -220,7 +221,7 @@ fun RegisterScreen(onDismiss: () -> Unit, onRegisterSuccess: () -> Unit) {
         }
     }
 }
-
+}
 // Password validation function
 fun validatePassword(password: String): String? {
     val hasUpperCase = password.any { it.isUpperCase() }

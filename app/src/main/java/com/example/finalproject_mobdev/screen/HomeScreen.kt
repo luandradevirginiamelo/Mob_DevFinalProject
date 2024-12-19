@@ -36,6 +36,7 @@ import com.example.finalproject_mobdev.utils.openGoogleMaps
 import com.example.finalproject_mobdev.utils.getAddressFromLocation
 
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = viewModel(),
@@ -45,11 +46,12 @@ fun HomeScreen(
     onSettingsClick: () -> Unit,
     navController: NavController
 ) {
-
+    // State variables to observe changes in location, message, and pub list
     val locationText by homeViewModel.locationText.collectAsState()
     val messageText by homeViewModel.messageText.collectAsState()
     val pubsList by homeViewModel.pubsList.collectAsState()
 
+    // Retrieve the current context for location services
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val coroutineScope = rememberCoroutineScope()
@@ -57,6 +59,7 @@ fun HomeScreen(
     val db = FirebaseFirestore.getInstance()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // State for location permissions
     val locationPermissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -67,27 +70,29 @@ fun HomeScreen(
     var showPermissionErrorDialog by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-
+    // Effect to fetch user information when authentication state changes
     LaunchedEffect(auth.currentUser?.uid) {
         val uid = auth.currentUser?.uid
         if (uid != null) {
             db.collection("user").document(uid).get()
                 .addOnSuccessListener { document ->
+                    // Retrieve the user's name from Firestore
                     userName = document.getString("nameandsurname")
                 }
                 .addOnFailureListener {
+                    // Default to "Guest" if retrieval fails
                     userName = "Guest"
                 }
         }
     }
-
+    // Launching an effect to check for location permissions when the composable enters the composition
     LaunchedEffect(Unit) {
         if (!locationPermissionsState.allPermissionsGranted) {
             locationPermissionsState.launchMultiplePermissionRequest()
         }
     }
 
-    // Observe the flag "shouldRefresh" from PubDetailsScreen
+
     val shouldRefresh = navController.currentBackStackEntry?.savedStateHandle
         ?.getLiveData<Boolean>("shouldRefresh")
 
@@ -126,6 +131,7 @@ fun HomeScreen(
                         }
                     }
                 )
+                // Show a permission error dialog if location permissions are not granted
             } else {
                 showPermissionErrorDialog = true
             }
@@ -157,7 +163,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFD1C4E9))
+                .background(Color.Black)
                 .padding(16.dp)
         ) {
             Spacer(modifier = Modifier.height(40.dp))
@@ -172,8 +178,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onProfileClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C), // Roxo escuro
-                    contentColor = Color.White          // Texto branco
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -184,8 +190,8 @@ fun HomeScreen(
             Button(
                 onClick = { coroutineScope.launch { onSettingsClick() } },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C), // Roxo escuro
-                    contentColor = Color.White          // Texto branco
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -195,14 +201,14 @@ fun HomeScreen(
 
             Button(
                 onClick = {
-                    FirebaseAuth.getInstance().signOut() // Desloga o usuário do Firebase
-                    navController.navigate("login") {    // Navega para a tela de login
-                        popUpTo("home") { inclusive = true } // Remove HomeScreen da pilha de navegação
+                    FirebaseAuth.getInstance().signOut() // logout user from firebase
+                    navController.navigate("login") {    // go to login screen
+                        popUpTo("home") { inclusive = true } // Remove HomeScreen from navigation
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C), // Roxo escuro
-                    contentColor = Color.White          // Texto branco
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -211,13 +217,16 @@ fun HomeScreen(
         }
     }
 
+    // Modal navigation drawer with drawer content and drawer state
     ModalNavigationDrawer(
         drawerContent = drawerContent,
         drawerState = drawerState
     ) {
+        // Main scaffold containing the top bar and snackbar host
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
+                // Top app bar with a menu icon to open the drawer
                 TopAppBar(
                     title = { Text("Home") },
                     navigationIcon = {
@@ -234,16 +243,29 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 24.dp) // Adjusted padding
             ) {
+                // Display the welcome message inside a Card, if the userName is not null
                 userName?.let { name ->
-                    Text(
-                        text = "Welcome to Limerick, $name! See below where the best Craic is now.",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
-                    )
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp), // Spacing above and below the Card
+                        elevation = CardDefaults.cardElevation(8.dp), // Elevation to highlight
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFEDE7F6)// Soft background color
+                        )
+                    ) {
+                        Text(
+                            text = "Welcome to Limerick, $name! See below where the best Craic is now.",
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier
+                                .padding(16.dp) // Padding interno do Card
+                                .align(Alignment.CenterHorizontally) // Center text horizontally
+                        )
+                    }
                 }
-
+                // Button to manually update the list of pubs
                 Button(
                     onClick = {
                         if (locationPermissionsState.allPermissionsGranted) {
@@ -286,7 +308,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    Text("Click to update the Craic :)")
+                    Text("Click to update the List")
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -295,11 +317,11 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     item {
-                        // Linha com o ícone de localização, texto e botão "Maps"
+                        // Line with location icon, text and "Maps" button
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .fillMaxWidth() // Garante que o Row ocupe toda a largura
+                                .fillMaxWidth() // Row
                                 .padding(8.dp)
                         ) {
                             // Ícone de localização
@@ -312,18 +334,18 @@ fun HomeScreen(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // Texto com a localização
+                            // Text Location
                             Text(
                                 text = locationText,
                                 style = MaterialTheme.typography.bodyLarge
                             )
 
-                            Spacer(modifier = Modifier.weight(1f)) // Empurra o botão "Maps" para o lado direito
+                            Spacer(modifier = Modifier.weight(1f)) // Push the "Maps" button to the right
 
 
                         }
 
-                        // Exibe a mensagem caso exista algum texto em `messageText`
+                        // Display the message if there is any text in `messageText`
                         if (messageText.isNotEmpty()) {
                             Text(
                                 text = messageText,
@@ -333,7 +355,7 @@ fun HomeScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp)) // Espaçamento adicional
+                        Spacer(modifier = Modifier.height(16.dp)) // Additional spacing
                     }
 
 
@@ -360,15 +382,15 @@ fun HomeScreen(
                                 FloatingActionButton(
                                     onClick = { onNavigateToPubDetails(pubId) },
                                     modifier = Modifier.size(63.dp),
-                                    containerColor = Color(0xFF6A1B9A), // Cor roxa escura
+                                    containerColor = Color(0xFF212121), // Black
                                     contentColor = Color.White
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("⭐️", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Estrela centralizada
-                                        Text("Detalhes", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Palavra abaixo
+                                        Text("⭐️", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Centered star
+                                        Text("Details", color = Color.White, style = MaterialTheme.typography.bodyMedium) // Text below
                                     }
                                 }
                             }
@@ -429,27 +451,42 @@ fun getCurrentLocation(
 
 // Helper function: Check if GPS is enabled
 fun checkIfGpsIsEnabled(
-    context: Context,
-    onGpsEnabled: () -> Unit,
-    onGpsError: (String) -> Unit
+    context: Context,                     // Context of the activity
+    onGpsEnabled: () -> Unit,             // Callback to execute if GPS is enabled
+    onGpsError: (String) -> Unit          // Callback to execute if there is an error with GPS
 ) {
+    //  the context to an Activity, return if it's not an Activity
     val activity = context as? Activity ?: return
+
+    // Create a LocationRequest with high accuracy priority
     val locationRequest = LocationRequest.create().apply {
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
+
+    // Build a LocationSettingsRequest with the location request
     val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+
+    // Get the SettingsClient to check the device's location settings
     val settingsClient = LocationServices.getSettingsClient(context)
+
+    // Check the location settings using the builder's configuration
     val task = settingsClient.checkLocationSettings(builder.build())
 
+    // If the location settings are correct, call the onGpsEnabled callback
     task.addOnSuccessListener { onGpsEnabled() }
+
+    // Handle the case where the location settings are not satisfied
     task.addOnFailureListener { exception ->
         if (exception is ResolvableApiException) {
+            // If the issue can be resolved, try to prompt the user to enable GPS
             try {
                 exception.startResolutionForResult(activity, 1001)
             } catch (_: IntentSender.SendIntentException) {
+                // Handle the case where starting the resolution fails
                 onGpsError("Oops! It's not possible to see where the Craic is without your location.")
             }
         } else {
+            // If the issue is not resolvable, call the onGpsError callback with a message
             onGpsError("Oops! It's not possible to see where the Craic is without your location.")
         }
     }

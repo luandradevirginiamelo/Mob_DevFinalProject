@@ -13,41 +13,40 @@ import androidx.compose.ui.graphics.TileMode
 
 // Custom color schemes
 private val NightClubDarkColors = darkColorScheme(
-    primary = Color(0xFF8E24AA),
-    secondary = Color(0xFFAB47BC),
-    tertiary = Color(0xFFE1BEE7),
-    background = Color(0xFF1A1A2E),
-    surface = Color(0xFF121212),
-    onPrimary = Color.White,
-    onBackground = Color(0xFFEDE7F6),
-    onSurface = Color.White
+    primary = Color(0xFFFFEB3B), // Amarelo vibrante
+    secondary = Color(0xFFFFF176), // Amarelo suave
+    tertiary = Color(0xFFFFFFE0), // Amarelo muito claro
+    background = Color(0xFFFFFFFF), // Branco para fundo
+    surface = Color(0xFFFDF5E6), // Branco com tom quente
+    onPrimary = Color.Black, // Texto preto para contraste no amarelo
+    onBackground = Color(0xFF212121), // Preto suave para texto no fundo branco
+    onSurface = Color.Black // Texto preto para superfícies claras
 )
 
 private val NightClubLightColors = lightColorScheme(
-    primary = Color(0xFF8E24AA),
-    secondary = Color(0xFFBA68C8),
-    tertiary = Color(0xFFD1C4E9),
-    background = Color(0xFFF3E5F5),
-    surface = Color.White,
-    onPrimary = Color.White,
-    onBackground = Color(0xFF4A148C),
-    onSurface = Color.Black
-)
+    primary = Color(0xFF212121), // Preto suave
+    secondary = Color(0xFF424242), // Cinza escuro
+    tertiary = Color(0xFF616161), // Cinza médio
+    background = Color(0xFF9E9E9E), // Cinza claro para o fundo
+    surface = Color(0xFFBDBDBD), // Cinza mais claro para a superfície
+    onPrimary = Color.White, // Texto branco para contraste em fundo preto
+    onBackground = Color.Black, // Texto preto em fundo cinza claro
+    onSurface = Color.Black // Texto preto em superfícies claras
+
+    )
 
 // Gradient background brush
 val gradientBrush = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFF4A148C),
-        Color(0xFF8E24AA),
-        Color(0xFFBA68C8)
+        Color(0xFF212121), // Preto suave
+        Color(0xFF424242), // Cinza escuro
+        Color(0xFF757575)  // Cinza médio
     ),
     startY = 0.0f,
     endY = 1000.0f,
     tileMode = TileMode.Clamp
 )
 
-
-// Apply the custom theme
 @Composable
 fun Finalproject_MOBDEVTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

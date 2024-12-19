@@ -146,7 +146,7 @@ fun PubDetailsScreen(
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Botão "Rate 🔥"
+                                // BUTTON "Rate 🔥"
                                 FloatingActionButton(
                                     onClick = onNavigateToPubRate,
                                     modifier = Modifier.size(65.dp),
@@ -162,7 +162,7 @@ fun PubDetailsScreen(
                                     }
                                 }
 
-                                // Botão "Go to Pub 📍"
+                                // BUTTON "Go to Pub 📍"
                                 FloatingActionButton(
                                     onClick = {
                                         val latitude = pubDetails?.get("latitude") as? Double
@@ -172,7 +172,7 @@ fun PubDetailsScreen(
                                         }
                                     },
                                     modifier = Modifier.size(65.dp),
-                                    containerColor = Color(0xFF4CAF50), // Cor verde
+                                    containerColor = Color(0xFF4CAF50), // GREEN?
                                     contentColor = Color.White
                                 ) {
                                     Column(
@@ -188,7 +188,7 @@ fun PubDetailsScreen(
                                 FloatingActionButton(
                                     onClick = onNavigateToGallery,
                                     modifier = Modifier.size(65.dp),
-                                    containerColor = Color(0xFF6A1B9A), // Cor roxa
+                                    containerColor = Color(0xFF212121), // Black colour
                                     contentColor = Color.White
                                 ) {
                                     Column(

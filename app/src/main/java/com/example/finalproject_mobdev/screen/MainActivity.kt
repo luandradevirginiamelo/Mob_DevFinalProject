@@ -29,9 +29,9 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = "login" // Define a tela inicial como Login
+        startDestination = "login" // Define the inicial screen - Login
     ) {
-        // Tela de Login
+        // The Login screen route
         composable("login") {
             LoginScreen(
                 onRegisterClick = { navController.navigate("register") },
@@ -43,7 +43,7 @@ fun AppNavigation() {
             )
         }
 
-        // Tela de Registro
+        // The register screen route
         composable("register") {
             Finalproject_MOBDEVTheme {
                 RegisterScreen(
@@ -53,7 +53,7 @@ fun AppNavigation() {
             }
         }
 
-        // Tela Principal (Home)
+        // This defines the home screen route.
         composable("home") {
             Finalproject_MOBDEVTheme {
                 HomeScreen(
@@ -76,7 +76,7 @@ fun AppNavigation() {
             }
         }
 
-        // Tela de Detalhes do Pub
+        // This defines the pub details screen route.
         composable(
             route = "pubDetails/{pubId}",
             arguments = listOf(navArgument("pubId") { type = NavType.StringType })
@@ -89,12 +89,12 @@ fun AppNavigation() {
                     navController.navigate("pubRate/$pubId")
                 },
                 onNavigateToGallery = {
-                    navController.navigate("galleryScreen/$pubId") // Navega para a tela de Gallery Pictures
+                    navController.navigate("galleryScreen/$pubId") // GO TO  Gallery Pics
                 }
             )
         }
 
-        // Tela de Avaliação do Pub
+        // This defines the pub rate screen route.
         composable(
             route = "pubRate/{pubId}",
             arguments = listOf(navArgument("pubId") { type = NavType.StringType })
@@ -107,14 +107,7 @@ fun AppNavigation() {
             )
         }
 
-        // Tela de Upload de Fotos
-        composable("photo_upload") {
-            PhotoUploadScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // Tela de Galeria (GalleryScreen)
+        // This defines the gallery screen route.
         composable(
             route = "galleryScreen/{pubId}",
             arguments = listOf(navArgument("pubId") { type = NavType.StringType })
@@ -125,7 +118,7 @@ fun AppNavigation() {
                 onBack = { navController.popBackStack() } // Volta para a tela anterior
             )
         }
-
+        // This defines the profile screen route.
         composable("profile") {
             ProfileScreen(
                 onBack = { navController.popBackStack() },
@@ -134,7 +127,7 @@ fun AppNavigation() {
             )
         }
 
-        // Tela de Configurações
+        // This defines the settings screen route.
         composable("settings") {
             SettingsScreen(
                 onBack = { navController.popBackStack() }
