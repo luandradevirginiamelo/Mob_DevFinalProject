@@ -56,10 +56,10 @@ fun LoginScreen(
 
         if (auth.currentUser != null) {
             if (!keepMeLoggedIn) {
-                // Se a opção não estiver selecionada, faz logout
+                // If not selected do logout
                 auth.signOut()
             } else {
-                // Navega para Home se "Keep Me Logged In" estiver selecionado
+                // Navigate to Home if "Keep Me Logged In" is selected
                 onCraicClick()
             }
         }
@@ -264,17 +264,28 @@ fun VideoBackground() {
     }
 
     AndroidView(
+        // I use the AndroidView Composable to embed a traditional Android View (PlayerView) into my Compose UI.
         factory = {
+            // Here, I create an instance of PlayerView using the provided context.
             PlayerView(context).apply {
+                // I set the ExoPlayer instance to the PlayerView so it can play the video.
                 player = exoPlayer
+
+                // I disable the default media controls because I don't want the user to interact with them directly.
                 useController = false
+
+                // I set the resize mode to RESIZE_MODE_FIXED_HEIGHT to ensure the video maintains its aspect ratio
+                // while fitting within the available height.
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
+
+                // I configure the layout parameters to make the PlayerView fill the entire screen.
                 layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+                    ViewGroup.LayoutParams.MATCH_PARENT, // Full width
+                    ViewGroup.LayoutParams.MATCH_PARENT  // Full height
                 )
             }
         },
+        // I make sure the embedded view also fills the entire available space within the Compose layout.
         modifier = Modifier.fillMaxSize()
     )
 }

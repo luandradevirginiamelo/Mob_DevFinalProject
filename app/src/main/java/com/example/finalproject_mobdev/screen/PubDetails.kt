@@ -188,7 +188,7 @@ fun PubDetailsScreen(
                                 FloatingActionButton(
                                     onClick = onNavigateToGallery,
                                     modifier = Modifier.size(65.dp),
-                                    containerColor = Color(0xFF6A1B9A), // Cor roxa
+                                    containerColor = Color(0xFF212121), // Black colour
                                     contentColor = Color.White
                                 ) {
                                     Column(

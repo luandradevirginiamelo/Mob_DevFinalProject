@@ -381,7 +381,7 @@ fun HomeScreen(
                                 FloatingActionButton(
                                     onClick = { onNavigateToPubDetails(pubId) },
                                     modifier = Modifier.size(63.dp),
-                                    containerColor = Color(0xFF6A1B9A), // Cor roxa escura
+                                    containerColor = Color(0xFF212121), // Black
                                     contentColor = Color.White
                                 ) {
                                     Column(

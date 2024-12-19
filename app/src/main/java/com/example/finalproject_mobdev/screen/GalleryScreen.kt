@@ -4,6 +4,7 @@ package com.example.finalproject_mobdev.screen
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,14 +33,14 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
     val context = LocalContext.current
     val firebaseStorage = FirebaseStorage.getInstance()
 
-    // states
+    // States
     var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var imageUriToUpload by remember { mutableStateOf<Uri?>(null) }
     var uploadStatus by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
 
-    // upload image into screen
+    // Load images into the screen
     LaunchedEffect(Unit) {
         isLoading = true
         imageUris = loadImages(pubId, firebaseStorage)
@@ -54,7 +55,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
         }
     )
 
-    // Scaffold with structure from the screen
+    // UI
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,7 +78,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
             // Button to choose an image
             Button(
                 onClick = { imagePickerLauncher.launch("image/*") },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Blue, contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -87,7 +88,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // show pre-visualization
+            // Show preview of the selected image
             imageUriToUpload?.let { uri ->
                 Image(
                     painter = rememberAsyncImagePainter(model = uri),
@@ -100,25 +101,20 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val coroutineScope = rememberCoroutineScope() // Define the CoroutineScope out of the button
-
                 Button(
                     onClick = {
-                        imageUriToUpload?.let { uri -> // Verify if url ins null
+                        imageUriToUpload?.let { uri ->
                             coroutineScope.launch {
                                 isLoading = true
-                                uploadPhotoToFirebaseStorage(context, pubId, uri) { status ->
-                                    uploadStatus = status
-                                }
-                                // Reload images after upload
-                                imageUris = loadImages(pubId, firebaseStorage)
+                                uploadStatus = uploadPhotoToFirebaseStorage(context, pubId, uri)
+                                imageUris = loadImages(pubId, firebaseStorage) // Reload images after upload
                                 isLoading = false
                             }
                         } ?: run {
                             Toast.makeText(context, "No image selected!", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Green, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White)
                 ) {
                     Text("Upload Photo")
                 }
@@ -126,7 +122,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // View upload status
+            // Display upload status
             uploadStatus?.let { status ->
                 Text(
                     text = status,
@@ -137,11 +133,10 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Initial charging indicator
+            // Show loading indicator or display images
             if (isLoading) {
                 CircularProgressIndicator()
             } else {
-                // List of uploaded images
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -162,9 +157,7 @@ fun GalleryScreen(pubId: String, onBack: () -> Unit) {
     }
 }
 
-/**
- * Function to load images from Firebase Storage.
- */
+// Function to load images
 private suspend fun loadImages(pubId: String, firebaseStorage: FirebaseStorage): List<Uri> {
     return try {
         val storageRef = firebaseStorage.reference.child("pubs/$pubId/gallery")
@@ -176,34 +169,51 @@ private suspend fun loadImages(pubId: String, firebaseStorage: FirebaseStorage):
     }
 }
 
-/**
- * Function to upload images from Firebase Storage.
- */
+// Function to upload photo to Firebase Storage
 private suspend fun uploadPhotoToFirebaseStorage(
     context: Context,
     pubId: String,
-    imageUri: Uri,
-    onStatusUpdate: (String) -> Unit
-) {
+    imageUri: Uri
+): String {
     try {
-        val storageRef = FirebaseStorage.getInstance()
-            .reference.child("pubs/$pubId/gallery/${UUID.randomUUID()}.jpg")
+        // Generate a unique name for the file
+        val fileName = "gallery/${UUID.randomUUID()}.jpg"
 
-        storageRef.putFile(imageUri)
-            .addOnSuccessListener {
-                storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                    val successMessage = "Photo uploaded successfully!\nURL: $downloadUrl"
-                    onStatusUpdate(successMessage)
-                    Toast.makeText(context, "Upload Successful!", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .addOnFailureListener { exception ->
-                val errorMessage = "Failed to upload photo: ${exception.message}"
-                onStatusUpdate(errorMessage)
-                Toast.makeText(context, "Upload Failed: ${exception.message}", Toast.LENGTH_SHORT).show()
-            }
+        // Path in Firebase Storage
+        val storageRef = FirebaseStorage.getInstance()
+            .reference.child("pubs/$pubId/$fileName")
+
+        // Log the path
+        Log.d("Upload", "Uploading image to path: pubs/$pubId/$fileName")
+
+        // Check if URI is valid before upload
+        if (imageUri.toString().isEmpty()) {
+            val errorMessage = "Error: Invalid image URI"
+            Log.e("Upload", errorMessage)
+            return errorMessage
+        }
+
+        // Perform the upload
+        val uploadTask = storageRef.putFile(imageUri).await()
+        Log.d("Upload", "Upload completed successfully: $uploadTask")
+
+        // Get the download URL
+        val downloadUrl = storageRef.downloadUrl.await()
+        val successMessage = "Photo uploaded successfully! URL: $downloadUrl"
+        Log.d("Upload", successMessage)
+
+        // Show success message to the user
+        Toast.makeText(context, "Upload Successful!", Toast.LENGTH_SHORT).show()
+
+        return successMessage
     } catch (e: Exception) {
-        e.printStackTrace()
-        onStatusUpdate("Failed to upload photo: ${e.message}")
+        // Capture errors
+        val errorMessage = "Failed to upload photo: ${e.message}"
+        Log.e("Upload", errorMessage, e)
+
+        // Show error message to the user
+        Toast.makeText(context, "Upload Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+
+        return errorMessage
     }
 }

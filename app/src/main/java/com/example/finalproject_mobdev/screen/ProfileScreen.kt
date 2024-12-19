@@ -47,7 +47,7 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Foto de Perfil
+            // Profile Picture
             Image(
                 painter = painterResource(id = R.drawable.lu), // Substitua pela imagem correta
                 contentDescription = "Profile Picture",
@@ -59,7 +59,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nome do Usuário
+            // User Name
             Text(
                 text = "Luanna Virginia", // Substitua pelo dado real
                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -79,7 +79,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão de Editar Perfil
+            // Button to edit perfil
             Button(
                 onClick = onEditProfile,
                 modifier = Modifier.fillMaxWidth()
@@ -91,7 +91,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botão de Logout
+            // Button to logout
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth()
